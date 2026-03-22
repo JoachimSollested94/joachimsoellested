@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joachim Søllested – Økonom &amp; Analytiker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FFFFFF;
+  --bg-alt: #F3F6F8;
+  --bg-section: #F8FAFB;
+  --surface: #FFFFFF;
+  --primary: #0A66C2;
+  --primary-light: #378FE9;
+  --primary-dim: rgba(10, 102, 194, 0.08);
+  --primary-glow: rgba(10, 102, 194, 0.20);
+  --primary-border: rgba(10, 102, 194, 0.15);
+  --text-primary: #191919;
+  --text-secondary: #555555;
+  --text-muted: #999999;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(10, 102, 194, 0.30);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --serif: 'Playfair Display', 'Georgia', serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: auto; }
+
+body {
+  font-family: var(--sans);
+  color: var(--text-primary);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--primary); color: white; }
+
+/* ── Shader canvas ── */
+#scene-container {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Grid overlay ── */
+.grid-overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(10,102,194,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10,102,194,0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 70%);
+}
+
+/* ── Scroll progress ── */
+.scroll-progress {
+  position: fixed; top: 0; left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), var(--primary-light), var(--primary), transparent);
+  width: 0%; z-index: 1000;
+}
+
+/* ── Grain ── */
+.grain {
+  position: fixed; top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  z-index: 900; pointer-events: none; opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Content ── */
+.content { position: relative; z-index: 1; }
+
+/* ── Custom cursor ── */
+.cursor-dot {
+  position: fixed; width: 8px; height: 8px;
+  background: var(--primary); border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: width 0.3s var(--ease-spring), height 0.3s var(--ease-spring);
+  box-shadow: 0 0 10px rgba(10,102,194,0.4);
+}
+.cursor-ring {
+  position: fixed; width: 36px; height: 36px;
+  border: 1.5px solid rgba(10,102,194,0.3);
+  border-radius: 50%; pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: width 0.5s var(--ease-expo), height 0.5s var(--ease-expo),
+              border-color 0.3s, background 0.3s;
+}
+.cursor-hover .cursor-dot {
+  width: 44px; height: 44px;
+  background: rgba(10,102,194,0.08);
+  box-shadow: 0 0 40px rgba(10,102,194,0.15);
+}
+.cursor-hover .cursor-ring {
+  width: 60px; height: 60px;
+  border-color: transparent;
+  background: rgba(10,102,194,0.03);
+}
+
+/* ── Nav ── */
+.nav {
+  position: fixed; top: 24px; left: 50%;
+  transform: translateX(-50%); z-index: 100;
+  display: flex; align-items: center; gap: 2px;
+  padding: 5px 6px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 100px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.nav.visible { opacity: 1; }
+.nav a {
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 100px;
+  transition: all 0.3s ease;
+}
+.nav a:hover { color: var(--text-primary); background: var(--bg-alt); }
+.nav a.active { color: var(--primary); background: var(--primary-dim); box-shadow: 0 2px 0 0 var(--primary) inset; }
+
+/* ── Horizontal dividers ── */
+.section-divider {
+  width: 100%; max-width: 1100px; margin: 0 auto;
+  height: 1px; position: relative;
+  background: linear-gradient(90deg, transparent, rgba(10,102,194,0.10), transparent);
+}
+.section-divider::after {
+  content: '◆'; position: absolute;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: var(--primary); font-size: 8px;
+  background: var(--bg);
+  padding: 0 16px;
+}
+
+/* ── Section labels ── */
+.section-label {
+  font-family: var(--sans);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 14px;
+}
+.section-label::before {
+  content: ''; display: block; width: 32px; height: 1px;
+  background: linear-gradient(90deg, var(--primary), transparent);
+}
+
+.section-heading {
+  font-family: var(--serif);
+  font-size: clamp(30px, 4.2vw, 52px);
+  font-weight: 500; color: var(--text-primary);
+  letter-spacing: -0.02em; line-height: 1.15;
+  margin-bottom: 64px;
+  padding-bottom: 24px;
+  position: relative;
+}
+.section-heading::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 48px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), transparent);
+}
+.contact-section .section-heading::after {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+section {
+  padding: 130px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+#kompetencer,
+#kontakt {
+  background: linear-gradient(180deg, var(--bg-alt) 0%, transparent 100%);
+}
+
+/* ── Glass card ── */
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.6s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.glass-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(10,102,194,0.08), transparent);
+}
+.glass-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* ── Tilt cards ── */
+.tilt-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* ── Reveal animations ── */
+.reveal { opacity: 0; transform: translateY(40px); will-change: transform, opacity; }
+.reveal-scale { opacity: 0; transform: scale(0.92); will-change: transform, opacity; }
+
+/* ══════════════════════════════════════
+   FINANCIAL TICKER
+   ══════════════════════════════════════ */
+.ticker-strip {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+  padding: 14px 0;
+  z-index: 2;
+}
+.ticker-track {
+  display: flex;
+  animation: tickerScroll 40s linear infinite;
+  width: max-content;
+}
+.ticker-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 32px;
+  white-space: nowrap;
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+.ticker-item .ticker-label { color: var(--text-secondary); font-weight: 600; }
+.ticker-item svg { color: var(--primary); flex-shrink: 0; }
+.ticker-item img.ticker-logo { width: 20px; height: 20px; border-radius: 4px; object-fit: contain; flex-shrink: 0; }
+.ticker-item .ticker-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(10,102,194,0.20);
+}
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ══════════════════════════════════════
+   HERO
+   ══════════════════════════════════════ */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; position: relative;
+  padding: 140px 32px 80px;
+}
+.hero-content { position: relative; z-index: 2; max-width: 760px; }
+
+.hero-photo-wrap {
+  position: relative; display: inline-block;
+  margin-bottom: 56px;
+}
+.hero-photo {
+  width: 130px; height: 130px;
+  border-radius: 50%; object-fit: cover; object-position: center top;
+  display: block; position: relative; z-index: 2;
+  border: 2px solid rgba(10,102,194,0.20);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+}
+/* Orbits removed */
+
+.hero-badge {
+  position: absolute; bottom: -6px; right: -6px; z-index: 3;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  font-family: var(--sans);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.15em; padding: 5px 14px;
+  border-radius: 100px;
+  box-shadow: 0 4px 20px rgba(10,102,194,0.25);
+}
+
+/* Hero text overrides for sky/ocean background */
+.hero .hero-overline { color: rgba(255,255,255,0.70); }
+.hero .hero-name { color: #fff; }
+.hero .hero-name .accent {
+  background: linear-gradient(135deg, #6BB8FF, #378FE9);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero .hero-tagline { color: rgba(255,255,255,0.80); }
+.hero .hero-photo {
+  border: 3px solid rgba(255,255,255,0.4);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+}
+.hero .hero-badge {
+  background: rgba(255,255,255,0.92);
+  color: var(--primary);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+.hero .btn-ghost {
+  color: rgba(255,255,255,0.85);
+  border-color: rgba(255,255,255,0.30);
+}
+.hero .btn-ghost:hover {
+  color: #fff; border-color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.10);
+}
+.hero .scroll-hint span { color: rgba(255,255,255,0.45); }
+.hero .scroll-line {
+  background: linear-gradient(180deg, rgba(255,255,255,0.45), transparent);
+}
+
+.hero-overline {
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 500;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--primary); margin-bottom: 32px; opacity: 0;
+}
+
+.hero-name {
+  font-family: var(--serif);
+  font-size: clamp(48px, 8vw, 84px);
+  font-weight: 400; color: var(--text-primary);
+  letter-spacing: -0.02em; line-height: 1.05;
+  margin-bottom: 28px;
+}
+.hero-name .name-line { display: block; overflow: hidden; }
+.hero-name .name-inner { display: block; transform: translateY(110%); }
+
+/* Gradient text accent */
+.hero-name .accent {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: italic;
+}
+
+.hero-tagline {
+  font-size: 19px; font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.85; margin-bottom: 52px;
+  max-width: 560px; margin-left: auto; margin-right: auto;
+  opacity: 0;
+  letter-spacing: 0.015em;
+}
+
+.hero-cta-group {
+  display: flex; gap: 16px;
+  justify-content: center; flex-wrap: wrap; opacity: 0;
+}
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 15px 38px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white; border: none; border-radius: 100px;
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none; cursor: pointer;
+  transition: all 0.5s var(--ease-expo);
+  box-shadow: 0 8px 32px rgba(10,102,194,0.25);
+}
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 16px 48px rgba(10,102,194,0.35);
+}
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 15px 38px;
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border-hover);
+  border-radius: 100px;
+  font-family: var(--sans);
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 0.04em;
+  text-decoration: none; cursor: pointer;
+  transition: all 0.5s var(--ease-expo);
+}
+.btn-ghost:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-dim);
+  transform: translateY(-2px);
+}
+
+.btn-icon { width: 14px; height: 14px; }
+
+.scroll-hint {
+  position: absolute; bottom: 48px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column;
+  align-items: center; gap: 10px; opacity: 0;
+}
+.scroll-hint span {
+  font-family: var(--sans);
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.scroll-line {
+  width: 1px; height: 48px;
+  background: linear-gradient(180deg, var(--primary), transparent);
+  animation: scrollPulse 3s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%,100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.2; transform: scaleY(0.4); }
+}
+
+/* ══════════════════════════════════════
+   OM MIG
+   ══════════════════════════════════════ */
+.about-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px; align-items: start;
+}
+.about-text p {
+  font-size: 15px; line-height: 1.9;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+.about-text p + p { margin-top: 24px; }
+
+.about-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.6s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(10,102,194,0.08), transparent);
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-hover);
+}
+.stat-number {
+  font-family: var(--serif);
+  font-size: 48px; font-weight: 400;
+  background: linear-gradient(135deg, var(--text-primary), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1; margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+.stat-label {
+  font-size: 11px; font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════
+   KOMPETENCER
+   ══════════════════════════════════════ */
+.skills-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+}
+.skill-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 40px 28px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.6s var(--ease-expo);
+  cursor: default; position: relative; overflow: hidden;
+}
+.skill-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, rgba(10,102,194,0.04), transparent 60%);
+  opacity: 0; transition: opacity 0.6s ease;
+}
+.skill-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(10,102,194,0.08), transparent);
+}
+.skill-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-hover);
+}
+.skill-card:hover::before { opacity: 1; }
+.skill-card > * { position: relative; z-index: 1; }
+
+.skill-icon-wrap {
+  width: 48px; height: 48px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(10,102,194,0.08);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  transition: all 0.5s var(--ease-expo);
+}
+.skill-card:hover .skill-icon-wrap {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px rgba(10,102,194,0.25);
+}
+.skill-icon-wrap svg {
+  width: 20px; height: 20px; color: var(--primary);
+  transition: color 0.3s;
+}
+.skill-card:hover .skill-icon-wrap svg { color: white; }
+
+.skill-name {
+  font-family: var(--serif);
+  font-size: 16px; font-weight: 500;
+  color: var(--text-primary); margin-bottom: 10px;
+}
+.skill-desc {
+  font-size: 13px; color: var(--text-muted); line-height: 1.7;
+  font-weight: 300;
+}
+
+/* ══════════════════════════════════════
+   ERFARING
+   ══════════════════════════════════════ */
+.timeline { position: relative; padding-left: 48px; }
+.timeline::before {
+  content: '';
+  position: absolute; left: 19px; top: 8px; bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--primary), rgba(10,102,194,0.05));
+}
+.timeline-item { position: relative; margin-bottom: 40px; }
+.timeline-item:last-child { margin-bottom: 0; }
+
+.timeline-dot {
+  position: absolute; left: -37px; top: 28px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--primary);
+  z-index: 2; transition: all 0.4s ease;
+}
+.timeline-item:hover .timeline-dot {
+  background: var(--primary);
+  box-shadow: 0 0 0 6px rgba(10,102,194,0.08);
+}
+
+.timeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 36px 40px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.6s var(--ease-expo);
+  position: relative; overflow: hidden;
+}
+.timeline-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(10,102,194,0.06), transparent);
+}
+.timeline-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateX(4px);
+  border-color: var(--border-hover);
+}
+
+.timeline-role {
+  font-family: var(--serif);
+  font-size: 18px; font-weight: 500;
+  color: var(--text-primary); letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.timeline-meta {
+  font-size: 12px; color: var(--text-muted);
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+  letter-spacing: 0.03em;
+}
+.timeline-meta .dot {
+  width: 3px; height: 3px;
+  border-radius: 50%; background: var(--primary);
+  opacity: 0.4;
+}
+.timeline-highlights { list-style: none; padding: 0; }
+.timeline-highlights li {
+  font-size: 13px; line-height: 1.8;
+  color: var(--text-secondary);
+  padding-left: 18px; position: relative;
+  margin-bottom: 6px;
+  font-weight: 300;
+}
+.timeline-highlights li::before {
+  content: ''; position: absolute;
+  left: 0; top: 9px;
+  width: 4px; height: 4px;
+  border-radius: 50%; background: var(--primary); opacity: 0.35;
+}
+
+/* ══════════════════════════════════════
+   UDDANNELSE
+   ══════════════════════════════════════ */
+.education-card-inner { display: flex; align-items: center; gap: 32px; }
+.education-icon {
+  flex-shrink: 0; width: 80px; height: 80px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(10,102,194,0.08);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.education-icon svg { width: 34px; height: 34px; color: var(--primary); }
+.education-degree {
+  font-family: var(--serif);
+  font-size: 34px; font-weight: 400;
+  background: linear-gradient(135deg, var(--text-primary), var(--primary));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.education-school { font-size: 15px; color: var(--text-secondary); margin-top: 4px; font-weight: 300; }
+.education-year { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+/* ══════════════════════════════════════
+   KONTAKT
+   ══════════════════════════════════════ */
+.contact-section { text-align: center; padding-bottom: 130px; }
+.contact-card-inner { max-width: 480px; margin: 0 auto; }
+.contact-list { list-style: none; padding: 0; margin-bottom: 36px; }
+.contact-list li {
+  display: flex; align-items: center; gap: 16px;
+  font-size: 14px; color: var(--text-secondary);
+  font-weight: 300;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  justify-content: center;
+  transition: color 0.3s;
+  position: relative;
+}
+.contact-list li::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: var(--primary);
+  transition: width 0.4s var(--ease-expo), left 0.4s var(--ease-expo);
+}
+.contact-list li:hover { color: var(--text-primary); }
+.contact-list li:hover::after {
+  width: 30%;
+  left: 35%;
+}
+.contact-list li:last-child { border-bottom: none; }
+.contact-list li svg { width: 16px; height: 16px; color: var(--primary); }
+
+/* ── Footer ── */
+.footer {
+  text-align: center; padding: 48px 32px;
+  border-top: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 11px; color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+
+/* ══════════════════════════════════════
+   DEVICE MORPH
+   ══════════════════════════════════════ */
+.morph-section {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  max-width: 100%;
+  perspective: 1200px;
+}
+.morph-label {
+  position: absolute;
+  top: 48px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--sans);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--primary);
+  opacity: 0;
+  z-index: 10;
+}
+.morph-wrapper {
+  position: relative;
+  width: 80vw;
+  max-width: 960px;
+  aspect-ratio: 16/10;
+  border-radius: 12px;
+  overflow: hidden;
+  will-change: transform, border-radius;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Browser chrome (desktop state) */
+.morph-chrome {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: var(--bg-alt);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 8px;
+  z-index: 5;
+  border-bottom: 1px solid var(--border);
+}
+.morph-chrome-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.morph-chrome-dot:nth-child(1) { background: #C75B5B; }
+.morph-chrome-dot:nth-child(2) { background: #E5C040; }
+.morph-chrome-dot:nth-child(3) { background: #5CB87A; }
+.morph-chrome-url {
+  margin-left: 16px;
+  flex: 1;
+  height: 22px;
+  background: rgba(0,0,0,0.04);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Content area */
+.morph-screen {
+  position: absolute;
+  top: 36px; left: 0; right: 0; bottom: 0;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+/* Desktop content state */
+.morph-desktop {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 32px;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 24px;
+}
+.morph-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.morph-sidebar-photo {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 500;
+  color: white;
+}
+.morph-sidebar-name {
+  font-family: var(--serif);
+  font-size: 14px; font-weight: 500;
+  color: var(--text-primary);
+}
+.morph-sidebar-role {
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.morph-sidebar-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--text-secondary);
+  padding: 6px 0;
+}
+.morph-sidebar-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.morph-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.morph-main-heading {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 500;
+  color: var(--text-primary);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.morph-main-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.morph-main-card-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--primary-dim);
+  border: 1px solid rgba(10,102,194,0.08);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.morph-main-card-text {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+}
+.morph-main-card-title {
+  font-family: var(--serif);
+  font-size: 13px; font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+/* Mobile content state */
+.morph-mobile {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  opacity: 0;
+}
+.morph-mobile-photo {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif);
+  font-size: 18px; font-weight: 500;
+  color: white;
+}
+.morph-mobile-name {
+  font-family: var(--serif);
+  font-size: 16px; font-weight: 500; color: var(--text-primary);
+}
+.morph-mobile-role {
+  font-size: 11px; color: var(--text-muted); text-align: center;
+}
+.morph-mobile-card {
+  width: 100%; max-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.morph-mobile-card-title {
+  font-family: var(--serif);
+  font-size: 12px; font-weight: 500; color: var(--text-primary);
+}
+.morph-mobile-card-text {
+  font-size: 11px; color: var(--text-muted); margin-top: 2px;
+}
+.morph-mobile-btn {
+  margin-top: 8px;
+  padding: 10px 28px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: white;
+  border-radius: 100px;
+  font-family: var(--sans);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* Phone status bar (fades in) */
+.morph-phone-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-primary);
+  z-index: 6;
+  opacity: 0;
+}
+.morph-phone-bar-time { font-family: var(--sans); }
+.morph-phone-bar-icons {
+  display: flex; gap: 6px; font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Morph bottom text */
+.morph-caption {
+  position: absolute;
+  bottom: 48px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--serif);
+  font-size: 14px; font-weight: 400;
+  font-style: italic;
+  color: var(--text-muted);
+  white-space: nowrap;
+  opacity: 0;
+  z-index: 10;
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════ */
+@media (max-width: 900px) {
+  .about-content { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  section { padding: 80px 24px; }
+  .skills-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .nav, .cursor-dot, .cursor-ring { display: none; }
+  .about-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .timeline { padding-left: 36px; }
+  .timeline-dot { left: -25px; }
+  .glass-card { padding: 32px 24px; }
+  .morph-section { display: none; }
+  .ticker-strip { display: none; }
+}
+@media (max-width: 480px) {
+  .skills-grid { grid-template-columns: 1fr; }
+  .about-stats { grid-template-columns: repeat(2, 1fr); }
+  .education-card-inner { flex-direction: column; text-align: center; }
+  .hero-cta-group { flex-direction: column; align-items: center; }
+}
+
+/* ══════════════════════════════════════
+   REDUCED MOTION
+   ══════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  /* orbits removed */
+  .scroll-line, .scroll-progress { animation: none; }
+  .reveal, .reveal-scale { opacity: 1; transform: none; }
+  .hero-name .name-inner { transform: none; }
+  .hero-overline, .hero-tagline, .hero-cta-group, .scroll-hint { opacity: 1; }
+  .morph-section { display: none; }
+  .ticker-track { animation: none; }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ══════════════════════════════════════
+   PRINT
+   ══════════════════════════════════════ */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background: #fff; color: #1a1a1a; font-size: 11pt; }
+  #scene-container, .scroll-progress, .grain, .grid-overlay, .nav,
+  .hero-badge, .scroll-hint,
+  .cursor-dot, .cursor-ring, .hero-cta-group,
+  .morph-section, .ticker-strip { display: none !important; }
+  .hero { min-height: auto; padding: 40px 0 20px; }
+  .hero-photo { width: 80px; height: 80px; box-shadow: none; border: 2px solid #0A66C2; }
+  .hero-name { font-size: 28pt; color: #1a1a1a; -webkit-text-fill-color: #1a1a1a; }
+  .hero-name .accent { -webkit-text-fill-color: #0A66C2; font-style: normal; }
+  .hero-overline, .hero-tagline, .scroll-hint,
+  .hero-name .name-inner { opacity: 1; transform: none; }
+  .hero-tagline { font-size: 11pt; color: #555; }
+  section { padding: 24px 0; page-break-inside: avoid; }
+  .glass-card, .skill-card, .timeline-card, .stat-card {
+    background: #fff; backdrop-filter: none;
+    box-shadow: none; border: 1px solid #e0e0e0;
+    break-inside: avoid;
+  }
+  .glass-card::before, .skill-card::before, .skill-card::after { display: none; }
+  .reveal, .reveal-scale { opacity: 1; transform: none; }
+  .section-heading { color: #1a1a1a; -webkit-text-fill-color: #1a1a1a; }
+  .section-label { color: #0A66C2; }
+  .section-label::before { background: #0A66C2; }
+  .skill-name, .timeline-role { color: #1a1a1a; }
+  .skill-desc, .timeline-highlights li, .about-text p,
+  .education-school, .contact-list li { color: #555; }
+  .stat-number { -webkit-text-fill-color: #0A66C2; }
+  .education-degree { -webkit-text-fill-color: #1a1a1a; }
+  .timeline::before { background: #0A66C2; }
+  .skills-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .about-content { grid-template-columns: 1fr 1fr; }
+  .footer { display: none; }
+  .section-divider { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 3D Ocean shader -->
+<canvas id="scene-container"></canvas>
+
+<!-- Grid overlay -->
+<div class="grid-overlay"></div>
+
+<!-- Custom cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Scroll progress -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- Grain -->
+<div class="grain"></div>
+
+<!-- Nav -->
+<nav class="nav" id="nav">
+  <a href="#om-mig">Om mig</a>
+  <a href="#kompetencer">Kompetencer</a>
+  <a href="#erfaring">Erfaring</a>
+  <a href="#uddannelse">Uddannelse</a>
+  <a href="#kontakt">Kontakt</a>
+</nav>
+
+<div class="content">
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <div class="hero-photo-wrap reveal-scale">
+        <img class="hero-photo"
+          src="Job/Billeder/preview.png"
+          alt="Joachim Søllested">
+        <div class="hero-badge">cand.polit.</div>
+      </div>
+      <div class="hero-overline">Økonom &middot; Analytiker &middot; Datadrevet rådgiver</div>
+      <h1 class="hero-name">
+        <span class="name-line"><span class="name-inner">Joachim</span></span>
+        <span class="name-line"><span class="name-inner"><span class="accent">Søllested</span></span></span>
+      </h1>
+      <p class="hero-tagline">Jeg oversætter komplekse datasæt til klare beslutninger. Med erfaring fra Danske Bank, Skattestyrelsen og offentlig forvaltning bygger jeg broen mellem tal og handling.</p>
+      <div class="hero-cta-group">
+        <a href="#kontakt" class="btn-primary magnetic">
+          Kontakt mig
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+        </a>
+        <a href="#erfaring" class="btn-ghost magnetic">Se min erfaring</a>
+      </div>
+    </div>
+    <div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
+  </section>
+
+  <!-- FINANCIAL TICKER -->
+  <div class="ticker-strip">
+    <div class="ticker-track" id="tickerTrack">
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=danskebank.dk&sz=32" alt=""><span class="ticker-label">Danske Bank</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=skattestyrelsen.dk&sz=32" alt=""><span class="ticker-label">Skattestyrelsen</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=finanstilsynet.dk&sz=32" alt=""><span class="ticker-label">Finanstilsynet</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=ufst.dk&sz=32" alt=""><span class="ticker-label">UFST</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=roskilde.dk&sz=32" alt=""><span class="ticker-label">Roskilde Kommune</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=ku.dk&sz=32" alt=""><span class="ticker-label">Københavns Universitet</span><span class="ticker-dot"></span></div>
+      <!-- Duplicate for seamless loop -->
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=danskebank.dk&sz=32" alt=""><span class="ticker-label">Danske Bank</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=skattestyrelsen.dk&sz=32" alt=""><span class="ticker-label">Skattestyrelsen</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=finanstilsynet.dk&sz=32" alt=""><span class="ticker-label">Finanstilsynet</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=ufst.dk&sz=32" alt=""><span class="ticker-label">UFST</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=roskilde.dk&sz=32" alt=""><span class="ticker-label">Roskilde Kommune</span><span class="ticker-dot"></span></div>
+      <div class="ticker-item"><img class="ticker-logo" src="https://www.google.com/s2/favicons?domain=ku.dk&sz=32" alt=""><span class="ticker-label">Københavns Universitet</span><span class="ticker-dot"></span></div>
+    </div>
+  </div>
+
+  <!-- DEVICE MORPH -->
+  <section class="morph-section" id="morph">
+    <div class="morph-label">Professionel. Alle platforme.</div>
+    <div class="morph-wrapper" id="morphWrapper">
+      <!-- Browser chrome (desktop) -->
+      <div class="morph-chrome" id="morphChrome">
+        <div class="morph-chrome-dot"></div>
+        <div class="morph-chrome-dot"></div>
+        <div class="morph-chrome-dot"></div>
+        <div class="morph-chrome-url">joachimsollested.dk</div>
+      </div>
+      <!-- Phone status bar (mobile) -->
+      <div class="morph-phone-bar" id="morphPhoneBar">
+        <span class="morph-phone-bar-time">20:26</span>
+        <span class="morph-phone-bar-icons">5G &nbsp; 87%</span>
+      </div>
+      <!-- Screen content area -->
+      <div class="morph-screen">
+        <!-- Desktop state -->
+        <div class="morph-desktop" id="morphDesktop">
+          <div class="morph-sidebar">
+            <div class="morph-sidebar-photo">JS</div>
+            <div class="morph-sidebar-name">Joachim Søllested</div>
+            <div class="morph-sidebar-role">cand.polit. &middot; Økonom</div>
+            <div class="morph-sidebar-item"><div class="morph-sidebar-dot"></div>Budgetopfølgning</div>
+            <div class="morph-sidebar-item"><div class="morph-sidebar-dot"></div>Prognoseudvikling</div>
+            <div class="morph-sidebar-item"><div class="morph-sidebar-dot"></div>Ledelsesinformation</div>
+            <div class="morph-sidebar-item"><div class="morph-sidebar-dot"></div>Power BI &amp; SQL</div>
+          </div>
+          <div class="morph-main">
+            <div class="morph-main-heading">Erfaring</div>
+            <div class="morph-main-card">
+              <div class="morph-main-card-icon">&#x1F3E6;</div>
+              <div><div class="morph-main-card-title">Danske Bank</div><div class="morph-main-card-text">Financial &amp; Performance Management Analyst</div></div>
+            </div>
+            <div class="morph-main-card">
+              <div class="morph-main-card-icon">&#x1F3DB;</div>
+              <div><div class="morph-main-card-title">Skattestyrelsen</div><div class="morph-main-card-text">Fuldmægtig, Udbytteskat &amp; Finansielle Instrumenter</div></div>
+            </div>
+            <div class="morph-main-card">
+              <div class="morph-main-card-icon">&#x1F4CA;</div>
+              <div><div class="morph-main-card-title">Finanstilsynet</div><div class="morph-main-card-text">Fuldmægtig, inspektioner &amp; institutansvar</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Mobile state -->
+        <div class="morph-mobile" id="morphMobile">
+          <div class="morph-mobile-photo">JS</div>
+          <div class="morph-mobile-name">Joachim Søllested</div>
+          <div class="morph-mobile-role">cand.polit. &middot; Økonom &middot; Analytiker</div>
+          <div class="morph-mobile-card">
+            <div class="morph-mobile-card-title">Danske Bank</div>
+            <div class="morph-mobile-card-text">Financial &amp; Performance Management</div>
+          </div>
+          <div class="morph-mobile-card">
+            <div class="morph-mobile-card-title">Skattestyrelsen</div>
+            <div class="morph-mobile-card-text">Udbytteskat &amp; Finansielle Instrumenter</div>
+          </div>
+          <div class="morph-mobile-btn">Kontakt mig</div>
+        </div>
+      </div>
+    </div>
+    <div class="morph-caption" id="morphCaption">Desktop &rarr; Mobil</div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- OM MIG -->
+  <section id="om-mig">
+    <div class="section-label reveal">01 — Introduktion</div>
+    <h2 class="section-heading reveal">Økonomi handler om<br>mennesker, ikke kun tal</h2>
+    <div class="about-content">
+      <div class="about-text reveal">
+        <p>cand.polit. med erfaring i finansielle analyser, ledelsesrapportering og tværgående samarbejde fra både finanssektoren og offentlig forvaltning. Trives med at dykke ned i detaljer, identificere optimeringsmuligheder og sikre effektive processer.</p>
+        <p>Gennem stillinger i Danske Bank, Skattestyrelsen, Finanstilsynet og Udviklings- og Forenklingsstyrelsen har jeg opbygget solid erfaring med budgetopfølgning, prognoseudvikling, P&amp;L-analyse og ledelsesinformation. Vant til at arbejde selvstændigt og under tidspres med mange interessenter.</p>
+      </div>
+      <div class="about-stats">
+        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">7+</div><div class="stat-label">Års erfaring</div></div>
+        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">5</div><div class="stat-label">Sektorer</div></div>
+        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">8+</div><div class="stat-label">Dataværktøjer</div></div>
+        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">KU</div><div class="stat-label">cand.polit.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- KOMPETENCER -->
+  <section id="kompetencer">
+    <div class="section-label reveal">02 — Kompetencer</div>
+    <h2 class="section-heading reveal">Specialiseret i det<br>der skaber værdi</h2>
+    <div class="skills-grid">
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg></div>
+        <div class="skill-name">Budgetopfølgning</div>
+        <div class="skill-desc">Systematisk overvågning af budget vs. forbrug med afvigelsesanalyse</div>
+      </div>
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="skill-name">Prognoseudvikling</div>
+        <div class="skill-desc">Datadrevne prognoser og forecasting til beslutningsstøtte</div>
+      </div>
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+        <div class="skill-name">Ledelsesinformation</div>
+        <div class="skill-desc">KPI-rapportering og dashboards til strategisk overblik</div>
+      </div>
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <div class="skill-name">Økonomipartnerskab</div>
+        <div class="skill-desc">Rådgivning af fagområder med økonomisk indsigt</div>
+      </div>
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="skill-name">Power BI &amp; Tableau</div>
+        <div class="skill-desc">Visuel dataformidling og interaktive dashboards</div>
+      </div>
+      <div class="skill-card tilt-card reveal">
+        <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg></div>
+        <div class="skill-name">SQL &amp; Python</div>
+        <div class="skill-desc">Dataekstraktion, automatisering og avanceret analyse</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- ERFARING -->
+  <section id="erfaring">
+    <div class="section-label reveal">03 — Erfaring</div>
+    <h2 class="section-heading reveal">Fra finans til<br>offentlig forvaltning</h2>
+    <div class="timeline">
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Selvstændig – Makroanalyse og Investeringer</div>
+          <div class="timeline-meta">Selvstændig <span class="dot"></span> feb 2025 – nu</div>
+          <ul class="timeline-highlights">
+            <li>Analyse af makroøkonomiske trends, finansielle markeder og investeringsstrategier</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Financial &amp; Performance Management Analyst</div>
+          <div class="timeline-meta">Danske Bank <span class="dot"></span> maj 2024 – feb 2025</div>
+          <ul class="timeline-highlights">
+            <li>Kvartalsvise Performance Review rapporter med rapportering til Head of Personal Customers, Head of Asset Management, CFO, CEO og bestyrelsen</li>
+            <li>Månedlige P&amp;L rapporter (50-100 mio. kr.) og bestyrelsesrapporter</li>
+            <li>Finansiel rapportering, forecasting og budgetprocesser for forretningsenheder (10-50 mio. kr.)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Function Operation Officer</div>
+          <div class="timeline-meta">Danske Bank <span class="dot"></span> dec 2022 – maj 2024</div>
+          <ul class="timeline-highlights">
+            <li>Genberegning af komplekse inkassosager (200+ sager) med krav om detaljeorientering og nøjagtighed</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Fuldmægtig</div>
+          <div class="timeline-meta">Finanstilsynet <span class="dot"></span> aug 2022 – dec 2022</div>
+          <ul class="timeline-highlights">
+            <li>Myndighedsopgaver: inspektioner, kapitalansøgninger og institutansvar for små og mellemstore pengeinstitutter</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Fuldmægtig – Udbytteskat &amp; Finansielle Instrumenter</div>
+          <div class="timeline-meta">Skattestyrelsen <span class="dot"></span> nov 2020 – jul 2022</div>
+          <ul class="timeline-highlights">
+            <li>Sagsbehandling af 100+ sager på udbytteskat fra private og institutionelle investorer (JP Morgan, BlackRock, Fidelity)</li>
+            <li>Mentor for nye kollegaer med ansvar for faglig oplæring og vidensdeling</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Studentermedhjælper – Controlling &amp; Økonomi</div>
+          <div class="timeline-meta">Udviklings- og Forenklingsstyrelsen <span class="dot"></span> mar 2019 – jul 2020</div>
+          <ul class="timeline-highlights">
+            <li>Projektøkonomi, kontraktstyring og månedlige økonomirapporteringer i tværgående program</li>
+            <li>Udviklede Excel VBA-baseret styringsmodel til mere konsistent økonomirapportering</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-card tilt-card">
+          <div class="timeline-role">Analytisk studentermedhjælper</div>
+          <div class="timeline-meta">Roskilde Kommune – Social, Job og Sundhed <span class="dot"></span> mar 2018 – apr 2019</div>
+          <ul class="timeline-highlights">
+            <li>Analyse af ledelsesinformation og driftsopgaver baseret på komplekse forløbsdata via Excel VBA</li>
+            <li>Leverede ledelsesinformation til direktionen på social- og sundhedsområdet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- UDDANNELSE -->
+  <section id="uddannelse">
+    <div class="section-label reveal">04 — Uddannelse</div>
+    <h2 class="section-heading reveal">Fagligt fundament</h2>
+    <div class="glass-card tilt-card reveal" style="margin-bottom: 20px">
+      <div class="education-card-inner">
+        <div class="education-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5"/></svg>
+        </div>
+        <div>
+          <div class="education-degree">cand.polit.</div>
+          <div class="education-school">Københavns Universitet</div>
+          <div class="education-year">Feb 2018 – Jul 2020</div>
+        </div>
+      </div>
+    </div>
+    <div class="glass-card tilt-card reveal">
+      <div class="education-card-inner">
+        <div class="education-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.7 3 6 3s6-1.9 6-3v-5"/></svg>
+        </div>
+        <div>
+          <div class="education-degree">BSc.polit.</div>
+          <div class="education-school">Københavns Universitet</div>
+          <div class="education-year">Sep 2014 – Dec 2017</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- KONTAKT -->
+  <section class="contact-section" id="kontakt">
+    <div class="section-label reveal" style="justify-content:center">05 — Kontakt</div>
+    <h2 class="section-heading reveal" style="text-align:center">Lad os tale<br>om mulighederne</h2>
+    <div class="glass-card tilt-card reveal" style="max-width:520px;margin:0 auto">
+      <div class="contact-card-inner">
+        <ul class="contact-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>joachim_sollested@msn.com</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.2.94.5 1.86.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.95.2 1.87.5 2.81.7A2 2 0 0122 16.92z"/></svg>+45 60 51 04 16</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>København S</li>
+          <li><a href="https://linkedin.com/in/joachim-søllested" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:16px;color:inherit;text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Joachim Søllested</a></li>
+        </ul>
+        <a href="mailto:joachim_sollested@msn.com" class="btn-primary magnetic" style="width:100%;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+          Send en email
+        </a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">Designet med omtanke &middot; Joachim Søllested 2026</footer>
+
+<!-- GSAP + ScrollTrigger -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- Lenis smooth scroll -->
+<script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+
+<script>
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let mouseX = 0, mouseY = 0;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+if (!prefersReducedMotion) {
+
+  let shaderScroll = 0;
+
+  // ══════════════════════════════════════
+  // WEBGL2 GEOMETRIC GRID SHADER
+  // ══════════════════════════════════════
+  const canvas = document.getElementById('scene-container');
+  const gl = canvas.getContext('webgl2', { alpha: false });
+  if (gl) {
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    function mkS(t, src) {
+      const s = gl.createShader(t);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('Shader:', gl.getShaderInfoLog(s)); return null; }
+      return s;
+    }
+
+    const vs = mkS(gl.VERTEX_SHADER, `#version 300 es
+in vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`);
+
+    const fs = mkS(gl.FRAGMENT_SHADER, `#version 300 es
+precision highp float;
+uniform float uTime, uScroll;
+uniform vec2 uRes, uMouse;
+out vec4 O;
+
+// 3D Ocean — raymarched heightfield with reflections
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+}
+float sea(vec2 p, float t) {
+  float h = 0.0, a = 0.6;
+  mat2 m = mat2(1.6,1.2,-1.2,1.6);
+  for (int i = 0; i < 5; i++) {
+    h += a * sin(noise(p) * 6.283 + t * 0.8);
+    p = m * p * 0.7; t *= 1.13; a *= 0.48;
+  }
+  return h;
+}
+vec3 seaNormal(vec2 p, float t) {
+  float e = 0.002;
+  float h = sea(p, t);
+  return normalize(vec3(h - sea(p+vec2(e,0),t), e * 15.0, h - sea(p+vec2(0,e),t)));
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec2 ndc = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;
+  float t = uTime * 0.6;
+
+  // Camera — looking mostly UP at sky, ocean only at very bottom edge
+  vec3 ro = vec3(0, 1.8, 0);
+  vec3 rd = normalize(vec3(ndc.x * 0.8, ndc.y * 0.5 + 0.55, 1.2));
+  // Mouse pan (subtle)
+  float mx = (uMouse.x - 0.5) * 0.12;
+  float ca = cos(mx), sa = sin(mx);
+  rd.xz = vec2(rd.x*ca - rd.z*sa, rd.x*sa + rd.z*ca);
+  rd.y += (uMouse.y - 0.5) * 0.05;
+  rd = normalize(rd);
+
+  // Sun (high and behind-right for golden hour feel)
+  vec3 sun = normalize(vec3(0.5, 0.45, -0.7));
+  float sd = max(dot(rd, sun), 0.0);
+
+  // Rich sky gradient
+  float h = max(rd.y, 0.0);
+  vec3 sky = mix(
+    vec3(0.82, 0.90, 0.98),   // horizon: warm light blue
+    vec3(0.28, 0.52, 0.85),   // zenith: deeper blue
+    pow(h, 0.45)
+  );
+  // Warm horizon band
+  sky = mix(sky, vec3(0.95, 0.92, 0.88), exp(-h * 4.0) * 0.2);
+  // Sun glow
+  sky += vec3(1.0, 0.97, 0.90) * pow(sd, 64.0) * 0.8;
+  sky += vec3(1.0, 0.95, 0.85) * pow(sd, 6.0) * 0.15;
+  // Subtle clouds via noise
+  float cloudNoise = noise(rd.xz / max(rd.y, 0.01) * 0.8 + t * 0.15);
+  float cloud = smoothstep(0.35, 0.65, cloudNoise) * smoothstep(0.0, 0.15, rd.y);
+  sky = mix(sky, vec3(1.0, 0.99, 0.97), cloud * 0.5);
+
+  vec3 col = sky;
+
+  // Ocean — only the bottom ~20% of screen
+  if (rd.y < -0.02) {
+    float tp = -ro.y / rd.y;
+    tp = min(tp, 120.0);
+    vec3 hp = ro + rd * tp;
+
+    vec3 n = seaNormal(hp.xz * 0.25, t);
+
+    // Bright ocean colors
+    vec3 deep = vec3(0.04, 0.16, 0.35);
+    vec3 shal = vec3(0.08, 0.28, 0.52);
+    float depth = clamp(tp * 0.015, 0.0, 1.0);
+    vec3 waterCol = mix(shal, deep, depth);
+
+    // Fresnel
+    float fr = pow(1.0 - max(dot(-rd, n), 0.0), 3.5);
+
+    // Sky reflection
+    vec3 refl = reflect(rd, n);
+    float rh = max(refl.y, 0.0);
+    vec3 reflCol = mix(vec3(0.82,0.90,0.98), vec3(0.28,0.52,0.85), pow(rh, 0.5));
+    reflCol += vec3(1,0.97,0.9) * pow(max(dot(refl, sun), 0.0), 128.0) * 2.5;
+
+    // Sun sparkle
+    float spec = pow(max(dot(refl, sun), 0.0), 512.0) * 5.0;
+    float sparkle = pow(max(dot(refl, sun), 0.0), 48.0) * 0.3;
+
+    col = mix(waterCol, reflCol, fr * 0.7);
+    col += vec3(1,0.98,0.92) * (spec + sparkle);
+
+    // Strong atmospheric fog (blends ocean into sky near horizon)
+    col = mix(col, sky, 1.0 - exp(-tp * 0.02));
+  }
+
+  // Mouse spotlight on water
+  vec2 mp = vec2((uMouse.x-0.5)*uRes.x/uRes.y, uMouse.y-0.5);
+  float mg = exp(-dot(ndc-mp*2.0, ndc-mp*2.0) * 2.0) * 0.06;
+  col += vec3(0.3,0.6,0.9) * mg;
+
+  // Scroll fade
+  col = mix(col, vec3(1.0), uScroll * 0.8);
+
+  O = vec4(col, 1.0);
+}`);
+
+    if (vs && fs) {
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'aPos');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      gl.useProgram(prog);
+      const uTimeLoc = gl.getUniformLocation(prog, 'uTime');
+      const uResLoc = gl.getUniformLocation(prog, 'uRes');
+      const uMouseLoc = gl.getUniformLocation(prog, 'uMouse');
+      const uScrollLoc = gl.getUniformLocation(prog, 'uScroll');
+
+      let sTime = 0, lastT = 0, focused = true;
+      document.addEventListener('visibilitychange', () => { focused = !document.hidden; });
+
+      (function render(now) {
+        requestAnimationFrame(render);
+        if (!focused) { lastT = now; return; }
+        const dt = Math.min((now - lastT) / 1000, 0.05);
+        lastT = now;
+        sTime += dt;
+        const d = Math.min(window.devicePixelRatio, 2);
+        const cw = window.innerWidth * d | 0;
+        const ch = window.innerHeight * d | 0;
+        if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.uniform1f(uTimeLoc, sTime);
+        gl.uniform2f(uResLoc, canvas.width, canvas.height);
+        gl.uniform2f(uMouseLoc, mouseX / window.innerWidth, 1.0 - mouseY / window.innerHeight);
+        gl.uniform1f(uScrollLoc, shaderScroll);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      })(0);
+    }
+  } else {
+    canvas.style.background = 'linear-gradient(180deg, #4A7FBF, #7BB3E0 50%, #C8DFF2)';
+  }
+
+  // ══════════════════════════════════════
+  // LENIS SMOOTH SCROLL
+  // ══════════════════════════════════════
+  const lenis = new Lenis({
+    duration: 1.6,
+    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+  });
+
+  // Sync GSAP ScrollTrigger with Lenis (single RAF source via GSAP ticker)
+  gsap.registerPlugin(ScrollTrigger);
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+
+  // ══════════════════════════════════════
+  // CUSTOM CURSOR
+  // ══════════════════════════════════════
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let dotX = 0, dotY = 0, ringX = 0, ringY = 0;
+  let cursorLastT = performance.now();
+
+  function animCursor(now) {
+    const dt = Math.min((now - cursorLastT) / 16.667, 3);
+    cursorLastT = now;
+    dotX += (mouseX - dotX) * (1 - Math.pow(0.001, dt * 0.2));
+    dotY += (mouseY - dotY) * (1 - Math.pow(0.001, dt * 0.2));
+    ringX += (mouseX - ringX) * (1 - Math.pow(0.001, dt * 0.08));
+    ringY += (mouseY - ringY) * (1 - Math.pow(0.001, dt * 0.08));
+    dot.style.left = dotX + 'px'; dot.style.top = dotY + 'px';
+    ring.style.left = ringX + 'px'; ring.style.top = ringY + 'px';
+    requestAnimationFrame(animCursor);
+  }
+  animCursor(performance.now());
+
+  document.querySelectorAll('a, button, .skill-card, .stat-card, .timeline-card').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
+
+  // ══════════════════════════════════════
+  // 3D TILT ON CARDS
+  // ══════════════════════════════════════
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform =
+        'perspective(800px) rotateY(' + (x * 6) + 'deg) rotateX(' + (-y * 6) + 'deg) translateY(-3px) scale(1.01)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(800px) rotateY(0) rotateX(0) translateY(0) scale(1)';
+    });
+    card.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+  });
+
+  // ══════════════════════════════════════
+  // SCROLL PROGRESS
+  // ══════════════════════════════════════
+  lenis.on('scroll', () => {
+    const pct = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+    document.getElementById('scrollProgress').style.width = pct + '%';
+  });
+
+  // ══════════════════════════════════════
+  // NAV
+  // ══════════════════════════════════════
+  const nav = document.getElementById('nav');
+  ScrollTrigger.create({
+    trigger: '.hero', start: 'bottom top',
+    onEnter: () => nav.classList.add('visible'),
+    onLeaveBack: () => nav.classList.remove('visible')
+  });
+
+  document.querySelectorAll('section[id]').forEach(section => {
+    ScrollTrigger.create({
+      trigger: section, start: 'top center', end: 'bottom center',
+      onToggle: self => {
+        if (self.isActive) {
+          nav.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+          const link = nav.querySelector('a[href="#' + section.id + '"]');
+          if (link) link.classList.add('active');
+        }
+      }
+    });
+  });
+
+  // ══════════════════════════════════════
+  // HERO ANIMATION TIMELINE
+  // ══════════════════════════════════════
+  const heroTL = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  heroTL
+    .to('.hero-photo-wrap', { opacity: 1, scale: 1, duration: 1.4, delay: 0.4 })
+    .to('.hero-overline', { opacity: 1, duration: 0.8 }, '-=0.6')
+    .to('.name-inner', { y: 0, duration: 1.1, stagger: 0.14 }, '-=0.5')
+    .to('.hero-tagline', { opacity: 1, duration: 0.8 }, '-=0.5')
+    .to('.hero-cta-group', { opacity: 1, duration: 0.7 }, '-=0.3')
+    .to('.scroll-hint', { opacity: 1, duration: 0.7 }, '-=0.1');
+
+  // Shader scroll coupling + canvas fade
+  ScrollTrigger.create({
+    trigger: '.hero', start: 'top top', end: 'bottom top',
+    onUpdate: self => { shaderScroll = self.progress; }
+  });
+  gsap.to('#scene-container', {
+    opacity: 0,
+    scrollTrigger: { trigger: '.hero', start: 'bottom 80%', end: 'bottom 20%', scrub: true }
+  });
+
+  // ══════════════════════════════════════
+  // SCROLL REVEALS
+  // ══════════════════════════════════════
+  document.querySelectorAll('.reveal').forEach(el => {
+    gsap.to(el, {
+      opacity: 1, y: 0, duration: 1, ease: 'power2.out',
+      scrollTrigger: { trigger: el, start: 'top 85%', once: true }
+    });
+  });
+
+  document.querySelectorAll('.reveal-scale').forEach((el, i) => {
+    gsap.to(el, {
+      opacity: 1, scale: 1, duration: 0.8, delay: i * 0.08, ease: 'back.out(1.2)',
+      scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+    });
+  });
+
+  // ══════════════════════════════════════
+  // SECTION DIVIDER REVEALS
+  // ══════════════════════════════════════
+  document.querySelectorAll('.section-divider').forEach(el => {
+    gsap.fromTo(el,
+      { scaleX: 0 },
+      { scaleX: 1, duration: 1.2, ease: 'power2.inOut',
+        scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+      }
+    );
+  });
+
+  // ══════════════════════════════════════
+  // DEVICE MORPH ANIMATION
+  // ══════════════════════════════════════
+  if (window.innerWidth > 768) {
+    const morphTL = gsap.timeline({
+      scrollTrigger: {
+        trigger: '.morph-section',
+        start: 'top top',
+        end: '+=150%',
+        pin: true,
+        scrub: 0.8,
+      }
+    });
+
+    morphTL.fromTo('.morph-label', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.15 }, 0);
+    morphTL.fromTo('#morphCaption', { opacity: 0 }, { opacity: 1, duration: 0.15 }, 0);
+
+    morphTL.to('#morphWrapper', {
+      scale: 0.42,
+      borderRadius: '40px',
+      duration: 0.6,
+      ease: 'power2.inOut',
+    }, 0.1);
+
+    morphTL.fromTo('#morphWrapper',
+      { rotateY: 0, rotateX: 0 },
+      { rotateY: -8, rotateX: 4, duration: 0.3, ease: 'power2.in' },
+      0.1
+    );
+    morphTL.to('#morphWrapper', { rotateY: 0, rotateX: 0, duration: 0.3, ease: 'power2.out' }, 0.4);
+
+    morphTL.to('#morphChrome', { opacity: 0, duration: 0.3 }, 0.15);
+    morphTL.to('#morphPhoneBar', { opacity: 1, duration: 0.3 }, 0.35);
+
+    morphTL.to('#morphDesktop', { opacity: 0, duration: 0.35 }, 0.2);
+    morphTL.to('#morphMobile', { opacity: 1, duration: 0.35 }, 0.4);
+
+    morphTL.to('#morphCaption', { opacity: 0.5, duration: 0.2 }, 0.75);
+    morphTL.to('.morph-label', { opacity: 0, duration: 0.15 }, 0.85);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => ScrollTrigger.refresh());
+    }
+  }
+
+  // Stagger skill cards
+  ScrollTrigger.create({
+    trigger: '.skills-grid', start: 'top 80%', once: true,
+    onEnter: () => gsap.to('.skill-card', { opacity: 1, y: 0, duration: 0.8, stagger: 0.08, ease: 'power2.out' })
+  });
+
+  // Stagger timeline
+  ScrollTrigger.create({
+    trigger: '.timeline', start: 'top 80%', once: true,
+    onEnter: () => gsap.to('.timeline-item', { opacity: 1, y: 0, duration: 0.9, stagger: 0.12, ease: 'power2.out' })
+  });
+
+  // Stagger stats
+  ScrollTrigger.create({
+    trigger: '.about-stats', start: 'top 85%', once: true,
+    onEnter: () => gsap.to('.stat-card', { opacity: 1, scale: 1, duration: 0.7, stagger: 0.1, ease: 'back.out(1.2)' })
+  });
+
+  // Magnetic buttons
+  document.querySelectorAll('.magnetic').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      btn.style.transform = 'translate(' + (x * 0.15) + 'px,' + (y * 0.15) + 'px)';
+    });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0,0)'; });
+  });
+
+  // ══════════════════════════════════════
+  // PARALLAX SECTIONS
+  // ══════════════════════════════════════
+  document.querySelectorAll('.section-heading').forEach(heading => {
+    gsap.to(heading, {
+      y: -20,
+      scrollTrigger: {
+        trigger: heading,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 1,
+      }
+    });
+  });
+
+} else {
+  // Reduced motion fallback
+  document.querySelectorAll('.reveal, .reveal-scale, .hero-overline, .hero-tagline, .hero-cta-group, .scroll-hint').forEach(el => {
+    el.style.opacity = '1'; el.style.transform = 'none';
+  });
+  document.querySelectorAll('.name-inner').forEach(el => { el.style.transform = 'none'; });
+  document.getElementById('nav').classList.add('visible');
+  document.getElementById('cursorDot').style.display = 'none';
+  document.getElementById('cursorRing').style.display = 'none';
+}
+</script>
+</body>
+</html>
