@@ -1418,256 +1418,344 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`);
     const fs = mkS(gl.FRAGMENT_SHADER, `#version 300 es
 precision highp float;
 uniform float uTime, uScroll;
-uniform vec2 uRes, uMouse;
+uniform vec2  uRes, uMouse;
 out vec4 O;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-float hash(float n) { return fract(sin(n)*43758.5453); }
-float hash(vec2 p)  { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-float hash(vec3 p)  { return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
-
-float noise(vec3 p) {
-  vec3 i=floor(p), f=fract(p);
-  f=f*f*(3.0-2.0*f);
-  float n=i.x+i.y*57.0+i.z*113.0;
-  return mix(mix(mix(hash(n),      hash(n+1.0),  f.x),
-                 mix(hash(n+57.0), hash(n+58.0), f.x),f.y),
-             mix(mix(hash(n+113.0),hash(n+114.0),f.x),
-                 mix(hash(n+170.0),hash(n+171.0),f.x),f.y),f.z);
+// ── Hash & Noise ──────────────────────────────────────────────────────────────
+float hash11(float p) {
+  p = fract(p * 0.1031);
+  p *= p + 33.33;
+  p *= p + p;
+  return fract(p);
 }
-
-float noise(vec2 p) {
-  vec2 i=floor(p), f=fract(p);
-  f=f*f*(3.0-2.0*f);
-  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
-             mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+float hash21(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
 }
-
-float fbm(vec3 p) {
-  float v=0.0,a=0.5;
-  for(int i=0;i<6;i++){
-    v+=a*noise(p);
-    p=p*mat3(0.0,1.6,1.2,-1.6,0.72,-0.96,-1.2,-0.96,1.28);
-    a*=0.5;
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash21(i), hash21(i+vec2(1,0)), u.x),
+    mix(hash21(i+vec2(0,1)), hash21(i+vec2(1,1)), u.x), u.y);
+}
+float fbm4(vec2 p) {
+  float v=0.0, amp=0.5;
+  for(int i=0;i<4;i++){
+    v += amp * vnoise(p);
+    p = p * mat2(1.6,1.2,-1.2,1.6);
+    amp *= 0.48;
   }
   return v;
 }
 
-// ── Leaf/canopy density field ─────────────────────────────────────────────────
-// Models a dense forest canopy as overlapping spherical leaf clusters
-float leafDensity(vec3 p, float t) {
-  // Wind sway — gentle breathing motion
-  float sway = sin(t*0.4 + p.x*0.8)*0.04 + sin(t*0.6 + p.z*0.6)*0.03;
-  p.x += sway; p.z += sway*0.5;
-
-  // Domain-warp for organic, non-repetitive canopy
-  vec3 q = vec3(fbm(p*0.4 + vec3(0.0,0.0,0.0)),
-                fbm(p*0.4 + vec3(5.2,1.3,2.1)),
-                fbm(p*0.4 + vec3(2.3,8.7,4.2)));
-  float f = fbm(p*0.5 + 1.8*q);
-
-  // Canopy exists in y=[2.5, 6.0], denser toward top
-  float altMask = smoothstep(2.0,3.5,p.y) * smoothstep(7.5,5.0,p.y);
-  // Secondary layer (understory)
-  float under = smoothstep(1.0,1.8,p.y) * smoothstep(2.8,2.0,p.y) * 0.35;
-
-  return clamp((f*2.2 - 0.85)*altMask + under, 0.0, 1.0);
+// ── Wind animation ────────────────────────────────────────────────────────────
+// heightFrac: 0=base, 1=crown tip — displacement grows quadratically (pivot at root)
+float windAmt(float treeX, float heightFrac) {
+  float slowSway  = sin(uTime * 0.65 + treeX * 2.3) * 0.013;
+  float fastFlutter = sin(uTime * 2.6 + treeX * 5.1) * 0.004;
+  return (slowSway + fastFlutter) * heightFrac * heightFrac;
+}
+// Leaf domain warp — subtle UV shift for canopy animation
+vec2 leafWarp(vec2 p) {
+  float wx = sin(uTime * 0.55 + p.x * 3.1 + p.y * 2.7) * 0.028;
+  float wy = cos(uTime * 0.45 + p.y * 2.9 + p.x * 1.8) * 0.018;
+  return p + vec2(wx, wy);
 }
 
-// ── Trunk SDF (capsule) ───────────────────────────────────────────────────────
-float capsuleSDF(vec3 p, vec3 a, vec3 b, float r) {
-  vec3 pa=p-a, ba=b-a;
+// ── Tree SDF primitives ───────────────────────────────────────────────────────
+float sdCapsule2(vec2 p, vec2 a, vec2 b, float r) {
+  vec2 pa=p-a, ba=b-a;
   float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);
   return length(pa-ba*h)-r;
 }
+float sdEllipse2(vec2 p, vec2 c, vec2 r) {
+  p -= c;
+  return (length(p/r) - 1.0) * min(r.x, r.y);
+}
+float sminK(float a, float b, float k) {
+  float h = max(k - abs(a-b), 0.0) / k;
+  return min(a,b) - h*h*k*0.25;
+}
+// Single tree: returns SDF (negative = inside silhouette)
+// treeX: screen-space X, sc: depth scale, wOff: wind offset
+float treeSDF2(vec2 st, float treeX, float sc, float wOff) {
+  float trunkW = 0.022 * sc;
+  float trunkH = 0.52 * sc;
+  // Ground level: horizon is at st.y≈0.0 in our coord, path bottom at st.y≈-1.0
+  vec2 tBot = vec2(treeX, -1.02);
+  vec2 tTop = vec2(treeX + wOff * 0.25, -1.02 + trunkH);
+  float trunk = sdCapsule2(st, tBot, tTop, trunkW);
 
-// ── Volumetric forest raymarcher ──────────────────────────────────────────────
-// Camera is at ground level looking UP through the canopy
-// Sun comes from upper-right, breaking through the leaves
-vec3 marchForest(vec3 ro, vec3 rd, vec3 sunDir, float t) {
-  // Sky colour seen through gaps — deep forest blue-green
-  vec3 skyGap = vec3(0.42, 0.62, 0.88);
-
-  float transmittance = 1.0;
-  vec3  scattered     = vec3(0.0);
-  vec3  color         = vec3(0.0);
-
-  float tMax = 9.0;
-  int   STEPS = 48;
-  float dt    = tMax / float(STEPS);
-  // Jitter start to remove banding
-  float jitter = hash(rd.xy + fract(t));
-  float tCur   = dt * jitter;
-
-  for(int i=0; i<48; i++) {
-    vec3 p = ro + rd * tCur;
-    float dens = leafDensity(p, t);
-
-    if(dens > 0.005) {
-      // Beer-Lambert: light attenuates exponentially through leaves
-      float sigma_t   = 1.8;
-      float extinction = exp(-dens * dt * sigma_t);
-
-      // Light visibility — march a few steps toward sun for self-shadow
-      float shadow = 1.0;
-      vec3  sp = p;
-      for(int s=0;s<4;s++){
-        sp += sunDir * 0.4;
-        shadow *= exp(-leafDensity(sp,t) * 0.4 * sigma_t * 0.6);
-      }
-
-      // Leaf colour: sunlit bright yellow-green vs shadowed deep green
-      vec3 sunlit  = vec3(0.55, 0.72, 0.18);   // bright chlorophyll
-      vec3 shadCol = vec3(0.05, 0.18, 0.06);   // deep shadow green
-      // Subsurface scattering approx — leaves transmit warm light
-      vec3 sss     = vec3(0.30, 0.48, 0.08) * shadow;
-      vec3 leafCol = mix(shadCol, sunlit, shadow) + sss*0.4;
-
-      // Ambient sky light from above (indirect)
-      float skyLight = max(dot(normalize(p), vec3(0,1,0)), 0.0) * 0.3;
-      leafCol += vec3(0.18, 0.32, 0.45) * skyLight;
-
-      // Alpha composite (front-to-back)
-      float alpha = (1.0-transmittance) < 0.99 ?
-                    (1.0 - extinction) * transmittance : 0.0;
-      color        += alpha * leafCol;
-      transmittance *= extinction;
-
-      if(transmittance < 0.01) break;
-    }
-
-    // Trunk intersection — dark silhouette cylinders scattered around
-    for(int k=0;k<5;k++){
-      float fk  = float(k);
-      float tx  = sin(fk*3.7+1.1)*2.8;
-      float tz  = cos(fk*5.3+2.4)*2.8;
-      float r   = 0.06 + hash(fk)*0.06;
-      vec3  ta  = vec3(tx, 0.0, tz);
-      vec3  tb  = vec3(tx + sin(fk)*0.1, 4.5, tz + cos(fk)*0.1);
-      float d   = capsuleSDF(p, ta, tb, r);
-      if(d < 0.0) {
-        vec3 barkCol = vec3(0.12, 0.09, 0.06) + hash(fk)*0.05;
-        float alpha2 = (1.0 - transmittance) < 0.99 ?
-                       0.95 * transmittance : 0.0;
-        color        += alpha2 * barkCol;
-        transmittance *= 0.05;
-        break;
-      }
-    }
-
-    tCur += dt;
-  }
-
-  // Remaining transmittance sees sky through gaps
-  color += transmittance * skyGap;
-  return color;
+  // Crown: 3 overlapping ellipses, displaced by wind
+  vec2 ctr = tTop + vec2(wOff, 0.1*sc);
+  float cr = 0.155 * sc;
+  float c1 = sdEllipse2(st, ctr,                       vec2(cr*0.95, cr*1.15));
+  float c2 = sdEllipse2(st, ctr+vec2(-cr*0.58, cr*0.2),vec2(cr*0.80, cr*0.95));
+  float c3 = sdEllipse2(st, ctr+vec2( cr*0.52, cr*0.1),vec2(cr*0.78, cr*0.92));
+  float crown = sminK(sminK(c1,c2,0.07*sc), c3, 0.07*sc);
+  return min(trunk, crown);
 }
 
-// ── Ground (forest floor) ─────────────────────────────────────────────────────
-vec3 groundColor(vec2 uv, float t) {
-  // Mossy, damp forest floor — dark, organic
-  vec3 moss  = vec3(0.08, 0.15, 0.05);
-  vec3 soil  = vec3(0.12, 0.09, 0.06);
-  vec3 root  = vec3(0.18, 0.13, 0.08);
-  float n1 = noise(vec2(uv.x*6.0 + t*0.02, uv.y*6.0));
-  float n2 = noise(vec2(uv.x*14.0, uv.y*14.0 + t*0.015));
-  vec3 col = mix(moss, soil, n1);
-  col = mix(col, root, n2*0.4);
-  // Dappled sun patches on ground
-  float dapple = noise(vec2(uv.x*3.0 + t*0.05, uv.y*3.0 + t*0.03));
-  dapple = smoothstep(0.55, 0.75, dapple);
-  col = mix(col, vec3(0.42, 0.40, 0.18), dapple * 0.45);
-  return col;
+// ── Evaluate one depth layer (8 trees: 4L + 4R) ──────────────────────────────
+// Unrolled for GLSL ES 3.0 portability (no dynamic array indexing)
+// Returns alpha [0,1] of tree coverage at this depth
+float treeLayer(vec2 st, float sc, float fogFactor, float depthOffset) {
+  float aspect = uRes.x / uRes.y;
+  // Path gap at this depth (perspective: narrower further back)
+  float gap = 0.16 * sc;
+
+  // Left tree X positions (screen-space, aspect corrected)
+  float l0 = -(gap + 0.20*sc); float l1 = -(gap + 0.46*sc);
+  float l2 = -(gap + 0.78*sc); float l3 = -(gap + 1.18*sc);
+
+  // Wind per tree (unique phase via position seed)
+  float w0 = windAmt(l0 + depthOffset, sc);
+  float w1 = windAmt(l1 + depthOffset, sc);
+  float w2 = windAmt(l2 + depthOffset, sc);
+  float w3 = windAmt(l3 + depthOffset, sc);
+
+  float minD = 1e5;
+  // Left side
+  minD = min(minD, treeSDF2(st, l0, sc, w0));
+  minD = min(minD, treeSDF2(st, l1, sc, w1));
+  minD = min(minD, treeSDF2(st, l2, sc, w2));
+  minD = min(minD, treeSDF2(st, l3, sc, w3));
+  // Right side (mirror)
+  minD = min(minD, treeSDF2(st, -l0, sc, -w0));
+  minD = min(minD, treeSDF2(st, -l1, sc, -w1));
+  minD = min(minD, treeSDF2(st, -l2, sc, -w2));
+  minD = min(minD, treeSDF2(st, -l3, sc, -w3));
+
+  float pxW = 2.0 / uRes.y;
+  return 1.0 - smoothstep(-pxW, pxW, minD);
 }
 
-// ── God rays (volumetric light shafts through canopy) ────────────────────────
-float godRays(vec2 uv, vec2 sunUV) {
-  vec2  delta = (uv - sunUV) / 40.0;
-  float decay = 0.965, weight = 0.03;
+// ── Sky ───────────────────────────────────────────────────────────────────────
+vec3 skyCol(vec2 uv) {
+  float t = clamp((uv.y - 0.50) / 0.50, 0.0, 1.0); // 0=horizon, 1=top
+  // 3-stop gradient: golden amber → burnt sienna → deep indigo
+  vec3 horizCol  = vec3(0.98, 0.72, 0.22);
+  vec3 midCol2   = vec3(0.60, 0.35, 0.14);
+  vec3 apexCol   = vec3(0.10, 0.09, 0.20);
+  float t1 = smoothstep(0.0, 0.4, t);
+  float t2 = smoothstep(0.4, 1.0, t);
+  vec3 sky = mix(horizCol, midCol2, t1);
+  sky       = mix(sky, apexCol, t2);
+
+  // Sun: soft golden bloom, slightly right of center, just above horizon
+  vec2 sunUV  = vec2(0.57, 0.53);
+  float sDist = length(uv - sunUV);
+  sky += vec3(1.0, 0.85, 0.40) * exp(-sDist * 14.0) * 1.8;
+  sky += vec3(1.0, 0.78, 0.30) * exp(-sDist * 4.0)  * 0.35;
+  sky += vec3(0.95, 0.60, 0.20) * exp(-sDist * 1.5) * 0.12;
+
+  // Warm atmospheric haze thickening near horizon
+  float haze = exp(-t * 5.5) * 0.45;
+  sky = mix(sky, horizCol * 1.25, haze);
+
+  return sky;
+}
+
+// ── God rays ──────────────────────────────────────────────────────────────────
+// Screen-space radial blur — GLSL constant loop bound (32)
+float godRays(vec2 uv, vec2 sunUV, vec2 stAspect) {
+  vec2 delta  = (uv - sunUV) * 0.55 / 32.0;
+  float decay = 0.935, wt = 0.04;
   float illum = 0.0;
-  vec2  tc    = uv;
-  for(int i=0;i<40;i++){
+  vec2 tc = uv;
+  for(int i=0; i<32; i++) {
     tc -= delta;
-    // Sample canopy occlusion at this UV
-    float n = noise(vec2(tc.x*4.0 + uTime*0.04, tc.y*4.0));
-    float gap = smoothstep(0.52, 0.65, n); // bright gaps between leaves
-    illum += gap * weight;
-    weight *= decay;
+    // Open sky proxy: above horizon and not too close to tree edges
+    float aboveHorizon = step(0.505, tc.y);
+    // Quick tree SDF for far layer at this screen pos (cheap approximation)
+    vec2 tcSt = vec2((tc.x - 0.5) * (uRes.x/uRes.y), tc.y * 2.0 - 1.0);
+    float gap2 = 0.16 * 0.28;
+    float tx0 = -(gap2 + 0.20*0.28);
+    float tx1 = -(gap2 + 0.46*0.28);
+    float block  = step(0.0, -treeSDF2(tcSt, tx0, 0.28, 0.0));
+    block += step(0.0, -treeSDF2(tcSt, tx1, 0.28, 0.0));
+    block += step(0.0, -treeSDF2(tcSt, -tx0, 0.28, 0.0));
+    block += step(0.0, -treeSDF2(tcSt, -tx1, 0.28, 0.0));
+    float openSky = aboveHorizon * (1.0 - clamp(block, 0.0, 1.0));
+    illum += openSky * wt;
+    wt *= decay;
   }
-  return clamp(illum, 0.0, 1.0);
+  // Focus toward sun
+  float sunFacing = max(0.0, 1.0 - length(uv - sunUV) * 3.5);
+  return clamp(illum, 0.0, 1.0) * sunFacing;
+}
+
+// ── Forest floor & path ───────────────────────────────────────────────────────
+// Perspective convergence: path half-width narrows toward horizon
+float pathHW(float depthT) {
+  return mix(0.40, 0.035, depthT);
+}
+vec3 groundColor(vec2 uv) {
+  float horizonY = 0.50;
+  float depthT   = clamp((horizonY - uv.y) / horizonY, 0.0, 1.0);
+
+  // Perspective-corrected UV for texturing
+  float hw       = pathHW(depthT);
+  vec2  pathUV   = vec2((uv.x - 0.5) / max(hw, 0.01), depthT * 4.0);
+
+  // Path dirt
+  vec3 dirtLight = vec3(0.58, 0.44, 0.29);
+  vec3 dirtDark  = vec3(0.30, 0.20, 0.12);
+  float pebble   = fbm4(pathUV * 6.0 + uTime * 0.04);
+  vec3 dirtCol   = mix(dirtDark, dirtLight, pebble);
+
+  // Moss at path edges
+  float edgeDist = abs(uv.x - 0.5) / max(hw, 0.01);
+  float mossBlend = smoothstep(0.55, 0.95, edgeDist);
+  vec3  mossCol   = vec3(0.14, 0.24, 0.08);
+
+  // Off-path forest floor (grass/moss)
+  vec3 floorCol  = vec3(0.10, 0.18, 0.06);
+  float floorN   = fbm4(uv * 8.0 + vec2(uTime*0.02, 0.0));
+  floorCol = mix(floorCol, vec3(0.18, 0.28, 0.10), floorN);
+
+  // Path mask (smooth edge)
+  float pm = 1.0 - smoothstep(hw - 0.015, hw + 0.018, abs(uv.x - 0.5));
+
+  vec3 gnd = mix(floorCol, dirtCol, pm);
+  gnd = mix(gnd, mossCol, mossBlend * pm * 0.7);
+
+  // Dappled amber light spots on ground
+  float dapple = vnoise(pathUV * vec2(5.0, 2.5) + uTime * 0.07);
+  dapple = smoothstep(0.62, 0.82, dapple) * (1.0 - depthT * 0.6);
+  gnd += dapple * vec3(0.38, 0.26, 0.06) * 0.6;
+
+  // Depth fog (exponential, Beer-Lambert)
+  float fogT    = 1.0 - exp(-depthT * 2.2);
+  vec3  fogCol  = vec3(0.72, 0.52, 0.22);
+  gnd = mix(gnd, fogCol, fogT * 0.72);
+
+  return gnd;
+}
+
+// ── Leaf canopy overhead ──────────────────────────────────────────────────────
+float canopyMask(vec2 uv) {
+  float lateralBias = abs(uv.x - 0.5) * 2.4;
+  float vertBias    = smoothstep(0.60, 1.0, uv.y) * 1.6;
+  vec2  warpedUV    = leafWarp(uv * vec2(4.5, 3.2));
+  float leafN       = fbm4(warpedUV);
+  float coverage    = leafN * (lateralBias * 0.7 + 0.3) + vertBias * 0.4;
+  return clamp(coverage - 0.1, 0.0, 1.0);
+}
+vec3 canopyColor(vec2 uv, float msk) {
+  vec3 leafDark2  = vec3(0.05, 0.11, 0.03);
+  vec3 leafLit    = vec3(0.24, 0.38, 0.07);
+  vec3 backlit    = vec3(0.68, 0.54, 0.07); // translucent amber backlight
+  float thinness  = 1.0 - smoothstep(0.25, 0.65, msk);
+  float leafDetail2 = fbm4(leafWarp(uv * 14.0));
+  vec3  lCol      = mix(leafDark2, leafLit, leafDetail2);
+  lCol            = mix(lCol, backlit, thinness * 0.55);
+  // Leaf shimmer flicker
+  float flicker   = vnoise(uv * 22.0 + uTime * 0.28) * 0.12;
+  lCol           += flicker * vec3(0.28, 0.20, 0.04);
+  return lCol;
 }
 
 // ── Tone mapping ──────────────────────────────────────────────────────────────
-vec3 ACESFilm(vec3 x) {
-  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
+vec3 acesTonemap(vec3 x) {
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0);
+}
+vec3 cinematicGrade(vec3 col) {
+  float luma  = dot(col, vec3(0.299, 0.587, 0.114));
+  // Warm shadow lift (BBC Earth look)
+  float shadMix = 1.0 - smoothstep(0.0, 0.4, luma);
+  col += vec3(0.04, 0.02, 0.0) * shadMix;
+  // Saturation boost
+  col  = mix(vec3(luma), col, 1.20);
+  // Highlight rolloff
+  float hiMix = smoothstep(0.55, 1.0, luma);
+  col  = mix(col, vec3(luma * 1.04), hiMix * 0.22);
+  return col;
+}
+float vignetteVal(vec2 uv) {
+  vec2 v = (uv - 0.5) * vec2(1.0, 1.35);
+  return clamp(1.0 - dot(v,v) * 1.75, 0.0, 1.0);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 void main() {
   vec2 uv  = gl_FragCoord.xy / uRes;
-  vec2 ndc = (gl_FragCoord.xy*2.0 - uRes) / uRes.y;
-  float t  = uTime * 0.35;
+  // Aspect-corrected screen coords, horizon at st.y=0, bottom at st.y≈-1
+  vec2 st  = vec2((uv.x - 0.5) * (uRes.x / uRes.y),
+                  (uv.y - 0.50) * 2.0);
 
-  // Mouse parallax — subtle head movement
-  vec2 mouse = (uMouse - 0.5) * 0.10;
+  // Mouse parallax — subtle camera lean
+  vec2 mouse = (uMouse - 0.5) * 0.06;
+  st.x += mouse.x;
+  st.y += mouse.y * 0.4;
 
-  // Camera at forest floor looking up
-  vec3 ro = vec3(0.0, 0.15, 0.0);
-  vec3 rd = normalize(vec3(ndc.x*0.7 + mouse.x,
-                           ndc.y*0.7 + 0.65 + mouse.y,
-                           1.0));
-  rd = normalize(rd);
+  float horizonY = 0.50;
+  vec3  col;
 
-  // Sun direction — morning light, slightly right and above canopy
-  vec3 sunDir = normalize(vec3(0.6, 0.85, -0.5));
+  // ── SKY ──
+  if(uv.y >= horizonY) {
+    col = skyCol(uv);
 
-  vec3 col;
-
-  if(rd.y > 0.02) {
-    // Looking up through canopy
-    col = marchForest(ro, rd, sunDir, t);
-
-    // God rays — light shafts from sun's screen position
-    vec2 sunNDC = (sunDir.xy / (sunDir.z + 2.0)) * 0.5 + 0.5;
-    sunNDC.y += 0.2;
-    float gr = godRays(uv, sunNDC);
-    col += vec3(0.92, 0.80, 0.45) * gr * 0.9;
-
-  } else {
-    // Looking at forest floor
-    float floorT = -ro.y / rd.y;
-    vec2  floorUV = (ro + rd*floorT).xz * 0.35;
-    col = groundColor(floorUV, t);
-    // Forest ambient — green bounce light
-    col = mix(col, vec3(0.12, 0.22, 0.08), 0.25);
-    // Dappled light on ground from god rays
-    vec2 sunNDC2 = (sunDir.xy / (sunDir.z + 2.0)) * 0.5 + 0.5;
-    sunNDC2.y += 0.2;
-    float gr2 = godRays(uv, sunNDC2) * 0.5;
-    col += vec3(0.80, 0.72, 0.35) * gr2;
-    // Fog from above
-    col = mix(col, vec3(0.18,0.25,0.12), smoothstep(0.0,-0.2,rd.y)*0.6);
+    // God rays (only computed for sky region for performance)
+    vec2 sunUV2 = vec2(0.57, 0.53);
+    float gr    = godRays(uv, sunUV2, st);
+    col += gr * vec3(1.0, 0.78, 0.28) * 0.55;
   }
 
-  // Horizon transition — deep green atmospheric fog
-  float horizFog = exp(-abs(rd.y - 0.02)*12.0) * 0.4;
-  col = mix(col, vec3(0.06, 0.14, 0.05), horizFog);
+  // ── GROUND ──
+  else {
+    col = groundColor(uv);
+  }
 
-  // Tone map + gamma
-  col *= 1.1;
-  col  = ACESFilm(col);
-  col  = pow(col, vec3(1.0/2.2));
+  // ── FAR TREE LAYER (depth scale 0.28, heavy fog) ──
+  float farAlpha = treeLayer(st, 0.28, 0.88, 0.0);
+  if(farAlpha > 0.001) {
+    // Colour tinted by fog: near-black + strong amber fog
+    vec3 farFogCol2 = vec3(0.62, 0.44, 0.18);
+    vec3 farTreeC2  = mix(vec3(0.07, 0.06, 0.04), farFogCol2, 0.82);
+    col = mix(col, farTreeC2, farAlpha * 0.88);
+  }
 
-  // Vignette — pulls focus to centre
-  float vig = 1.0 - dot(uv-0.5, uv-0.5)*0.65;
-  col *= vig;
+  // ── MID TREE LAYER (depth scale 0.55) ──
+  float midAlpha = treeLayer(st, 0.55, 0.55, 1.3);
+  if(midAlpha > 0.001) {
+    vec3 midFogCol2  = vec3(0.50, 0.34, 0.12);
+    vec3 midTreeCol2 = mix(vec3(0.06, 0.10, 0.03), midFogCol2, 0.50);
+    col = mix(col, midTreeCol2, midAlpha * 0.94);
+  }
 
-  // Subtle green colour grade — cinematic forest feel
-  col.g = mix(col.g, col.g*1.06, 0.4);
-  col.b = mix(col.b, col.b*0.92, 0.3);
+  // ── NEAR TREE LAYER (depth scale 1.0, minimal fog) ──
+  float nearAlpha = treeLayer(st, 1.0, 0.08, 2.7);
+  if(nearAlpha > 0.001) {
+    vec3 nearFogCol2  = vec3(0.35, 0.22, 0.08);
+    vec3 nearTreeCol2 = mix(vec3(0.04, 0.05, 0.02), nearFogCol2, 0.07);
+    col = mix(col, nearTreeCol2, nearAlpha * 0.97);
+  }
 
-  // Scroll fade
-  col = mix(col, vec3(1.0), uScroll*0.85);
+  // ── CANOPY OVERHEAD ──
+  float cMask = canopyMask(uv);
+  float cShow = smoothstep(0.62, 0.90, uv.y) * smoothstep(0.0, 0.08, cMask);
+  if(cShow > 0.001) {
+    vec3 cCol2 = canopyColor(uv, cMask);
+    col = mix(col, cCol2, cShow * cMask * 0.92);
+  }
+
+  // ── HORIZON GLOW ── (warm band right at treeline)
+  float horizGlow = exp(-abs(uv.y - horizonY) * 22.0) * 0.28;
+  col = mix(col, vec3(0.92, 0.65, 0.18), horizGlow);
+
+  // ── TONE MAP + GRADE ──
+  col = cinematicGrade(col);
+  col = acesTonemap(col * 1.18);
+  col = pow(col, vec3(1.0/2.2));
+
+  // ── VIGNETTE ──
+  col *= vignetteVal(uv);
+
+  // ── SCROLL FADE ──
+  col = mix(col, vec3(1.0), uScroll * 0.85);
 
   O = vec4(col, 1.0);
 }`);
