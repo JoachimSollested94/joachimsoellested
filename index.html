@@ -1421,291 +1421,423 @@ uniform float uTime, uScroll;
 uniform vec2  uRes, uMouse;
 out vec4 O;
 
-// ── Noise ─────────────────────────────────────────────────────────────────────
+// ── IQ-style gradient noise with analytic derivatives ────────────────────────
+// Returns vec3(value, dFdx, dFdy)
+vec2 ghash2(vec2 p) {
+  p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
+  return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+vec3 gnoise(vec2 x) {
+  vec2 p = floor(x), f = fract(x);
+  vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
+  vec2 du = 30.0*f*f*(f*(f-2.0)+1.0);
+  vec2 ga=ghash2(p+vec2(0,0)), gb=ghash2(p+vec2(1,0));
+  vec2 gc=ghash2(p+vec2(0,1)), gd=ghash2(p+vec2(1,1));
+  float va=dot(ga,f-vec2(0,0)), vb=dot(gb,f-vec2(1,0));
+  float vc=dot(gc,f-vec2(0,1)), vd=dot(gd,f-vec2(1,1));
+  float val = va+u.x*(vb-va)+u.y*(vc-va)+u.x*u.y*(va-vb-vc+vd);
+  vec2  der = ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd)
+            + du*(u.yx*(va-vb-vc+vd)+vec2(vb,vc)-va);
+  return vec3(val, der);
+}
+
+// Simple value noise
 float hash21(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.x + p3.y) * p3.z);
+  vec3 q=fract(vec3(p.xyx)*0.1031); q+=dot(q,q.yzx+33.33);
+  return fract((q.x+q.y)*q.z);
 }
 float vnoise(vec2 p) {
-  vec2 i=floor(p), f=fract(p), u=f*f*(3.0-2.0*f);
+  vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);
   return mix(mix(hash21(i),hash21(i+vec2(1,0)),u.x),
              mix(hash21(i+vec2(0,1)),hash21(i+vec2(1,1)),u.x),u.y);
 }
-float fbm4(vec2 p) {
-  float v=0.0, a=0.5;
-  for(int i=0;i<4;i++){v+=a*vnoise(p);p=mat2(1.6,1.2,-1.2,1.6)*p;a*=0.48;}
+
+// IQ derivative-modulated FBM — suppresses high octaves in steep areas
+// Produces erosion-like organic patterns (bark, terrain)
+float dfbm(vec2 p, int oct) {
+  float a=0.0, b=1.0;
+  vec2  d=vec2(0.0);
+  mat2  rot=mat2(1.6,1.2,-1.2,1.6);
+  for(int i=0;i<8;i++){
+    if(i>=oct) break;
+    vec3 n=gnoise(p);
+    d += n.yz;
+    a += b*n.x/(1.0+dot(d,d));
+    b *= 0.5;
+    p  = rot*p;
+  }
+  return a;
+}
+
+// Ridged multifractal — sharp ridges (bark crevices, veins)
+float ridged(vec2 p) {
+  float v=0.0, amp=0.5, wt=1.0;
+  for(int i=0;i<6;i++){
+    float n=1.0-abs(dot(gnoise(p).yz,vec2(1.0))*0.5+gnoise(p).x);
+    n=n*n*wt; v+=n*amp; wt=clamp(n*2.0,0.0,1.0); amp*=0.5; p*=2.07;
+  }
   return v;
 }
 
-// ── Wind ──────────────────────────────────────────────────────────────────────
-float windSway(float seed) {
-  return sin(uTime*0.60 + seed*2.3)*0.012 + sin(uTime*2.4 + seed*5.1)*0.003;
-}
-vec2 leafWarp(vec2 p) {
-  return p + vec2(sin(uTime*0.50+p.x*3.0+p.y*2.5)*0.025,
-                  cos(uTime*0.40+p.y*2.8+p.x*1.7)*0.016);
+// IQ cosine palette — organic colour variation
+vec3 cosPalette(float t, vec3 a, vec3 b, vec3 c, vec3 d){
+  return a + b*cos(6.2831853*(c*t+d));
 }
 
-// ── Single tree SDF ───────────────────────────────────────────────────────────
-// ALL coordinates in UV space (uv.y=0 bottom, uv.y=1 top)
-// cx:    tree center X in UV [0,1]
-// baseY: where trunk meets ground (uv.y, typically 0.50 = horizon)
-// sc:    size scale (1.0=big foreground, 0.28=small background)
-// sw:    wind horizontal offset at crown (positive=sways right)
-float treeSDF(vec2 uv, float cx, float baseY, float sc, float sw) {
-  // Aspect correction: convert UV distances to screen-space proportions
-  float ar = uRes.x / uRes.y;
-
-  // Trunk: from baseY upward by trunkH
-  float trunkH = 0.22 * sc;
-  float trunkW = 0.009 * sc / ar;
-  // Trunk leans slightly with wind at top
-  vec2 tBot = vec2(cx,        baseY);
-  vec2 tTop = vec2(cx + sw*0.3, baseY + trunkH);
-
-  // Capsule SDF for trunk
-  vec2 pa = uv - tBot, ba = tTop - tBot;
-  float h = clamp(dot(pa,ba)/dot(ba,ba), 0.0, 1.0);
-  float trunkDist = length(pa - ba*h) - trunkW;
-
-  // Crown: 3 ellipses ABOVE trunk top, displaced by wind
-  // crW in X must be divided by ar to appear circular on screen
-  float crW = 0.068 * sc / ar;
-  float crH = 0.090 * sc;
-  vec2 c0 = vec2(cx + sw,           baseY + trunkH + crH*0.85);
-  vec2 c1 = vec2(cx + sw - crW*0.6, baseY + trunkH + crH*0.55);
-  vec2 c2 = vec2(cx + sw + crW*0.5, baseY + trunkH + crH*0.50);
-
-  float d0 = length((uv-c0)/vec2(crW,        crH*1.05)) - 1.0;
-  float d1 = length((uv-c1)/vec2(crW*0.82,   crH*0.88)) - 1.0;
-  float d2 = length((uv-c2)/vec2(crW*0.78,   crH*0.85)) - 1.0;
-
-  // Smooth union of the 3 crown ellipses
-  float ks = 0.06*sc;
-  float crown = d0;
-  float hh;
-  hh=max(ks-abs(crown-d1),0.0)/ks; crown=min(crown,d1)-hh*hh*ks*0.25;
-  hh=max(ks-abs(crown-d2),0.0)/ks; crown=min(crown,d2)-hh*hh*ks*0.25;
-
-  return min(trunkDist, crown);
+// Leaf warp — wind animation
+vec2 leafWarp(vec2 p){
+  return p+vec2(sin(uTime*0.50+p.x*3.0+p.y*2.5)*0.024,
+                cos(uTime*0.40+p.y*2.8+p.x*1.7)*0.015);
+}
+float windSway(float seed){
+  return sin(uTime*0.60+seed*2.3)*0.011+sin(uTime*2.2+seed*4.8)*0.003;
 }
 
-// Evaluate 8 trees (4L + 4R) for one depth layer
-// sc: depth scale.  seed: wind de-sync offset
-// Returns [0,1] coverage (0=no tree, 1=inside tree)
-float treeLayer(vec2 uv, float sc, float seed) {
-  float baseY = 0.50;  // all trees root at horizon
-  float ar    = uRes.x / uRes.y;
+// ── Bark colour (IQ techniques) ───────────────────────────────────────────────
+vec3 barkColor(vec2 uv) {
+  // Stretch UV: bark has long vertical grain
+  vec2 p = uv * vec2(1.8, 7.0);
+  // Domain warp for organic shape
+  vec2 q = vec2(dfbm(p+vec2(0.0,0.0),4), dfbm(p+vec2(5.2,1.3),4));
+  float f = dfbm(p + 3.5*q, 6) * 0.5 + 0.5;
+  float r = ridged(p*0.8 + 3.0*q) * 0.5 + 0.5;
+  float bark = mix(f, r, 0.45);
+  vec3 dark  = vec3(0.10, 0.07, 0.04);
+  vec3 light = vec3(0.32, 0.22, 0.13);
+  vec3 col   = mix(dark, light, bark);
+  // Moss in deep crevices
+  col = mix(col, vec3(0.12,0.17,0.07), smoothstep(0.42,0.22,bark)*0.5);
+  return col;
+}
 
-  // X positions: foreground (sc=1.0) trees are wide apart,
-  //              background (sc=0.28) trees are close to center
-  // Gap from center to innermost tree (in UV units)
-  float innerGap = 0.06 + 0.22*sc;
+// ── Tree SDF with branching ───────────────────────────────────────────────────
+// Capsule SDF
+float sdCap(vec2 p, vec2 a, vec2 b, float r){
+  vec2 pa=p-a,ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);
+  return length(pa-ba*h)-r;
+}
 
-  // 4 left trees, evenly spaced outward from innerGap
-  float l0 = 0.5 - (innerGap);
-  float l1 = 0.5 - (innerGap + 0.16*sc);
-  float l2 = 0.5 - (innerGap + 0.34*sc);
-  float l3 = 0.5 - (innerGap + 0.55*sc);
+// Iterative branching SDF — 4 levels, unrolled for GLSL ES 3.0
+// All coords in UV space. Tree grows UPWARD from (cx, baseY).
+float treeBranchSDF(vec2 uv, float cx, float baseY, float sc, float sw){
+  float ar   = uRes.x/uRes.y;
+  float minD = 1e5;
 
+  // Scale: trunkH in Y, trunkW in X (aspect-corrected)
+  float trH = 0.28*sc;
+  float trW = 0.010*sc/ar;
+
+  // Trunk base → top (grows straight up with slight wind lean)
+  vec2 tb = vec2(cx, baseY);
+  vec2 tt = vec2(cx + sw*0.4, baseY + trH);
+  minD = min(minD, sdCap(uv, tb, tt, trW));
+
+  // Level 1: 2 main branches from trunk top
+  float bLen1 = 0.14*sc;
+  float bW1   = 0.007*sc/ar;
+  float ang1L = -0.38 + sw*0.3;
+  float ang1R =  0.38 + sw*0.3;
+  vec2 b1L = tt + vec2(sin(ang1L),cos(ang1L))*bLen1;
+  vec2 b1R = tt + vec2(sin(ang1R),cos(ang1R))*bLen1;
+  minD = min(minD, sdCap(uv, tt, b1L, bW1));
+  minD = min(minD, sdCap(uv, tt, b1R, bW1));
+
+  // Level 2: from each L1 endpoint
+  float bLen2 = 0.095*sc;
+  float bW2   = 0.0045*sc/ar;
+  float ang2  = 0.30 + sw*0.2;
+  vec2 b2LL = b1L + vec2(sin(ang1L-ang2),cos(ang1L-ang2))*bLen2;
+  vec2 b2LR = b1L + vec2(sin(ang1L+ang2),cos(ang1L+ang2))*bLen2;
+  vec2 b2RL = b1R + vec2(sin(ang1R-ang2),cos(ang1R-ang2))*bLen2;
+  vec2 b2RR = b1R + vec2(sin(ang1R+ang2),cos(ang1R+ang2))*bLen2;
+  minD = min(minD, sdCap(uv, b1L, b2LL, bW2));
+  minD = min(minD, sdCap(uv, b1L, b2LR, bW2));
+  minD = min(minD, sdCap(uv, b1R, b2RL, bW2));
+  minD = min(minD, sdCap(uv, b1R, b2RR, bW2));
+
+  // Level 3: finer twigs
+  float bLen3 = 0.060*sc;
+  float bW3   = 0.0025*sc/ar;
+  float ang3  = 0.25 + sw*0.15;
+  minD = min(minD, sdCap(uv,b2LL,b2LL+vec2(sin(ang1L-ang2-ang3),cos(ang1L-ang2-ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2LL,b2LL+vec2(sin(ang1L-ang2+ang3),cos(ang1L-ang2+ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2LR,b2LR+vec2(sin(ang1L+ang2-ang3),cos(ang1L+ang2-ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2LR,b2LR+vec2(sin(ang1L+ang2+ang3),cos(ang1L+ang2+ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2RL,b2RL+vec2(sin(ang1R-ang2-ang3),cos(ang1R-ang2-ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2RL,b2RL+vec2(sin(ang1R-ang2+ang3),cos(ang1R-ang2+ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2RR,b2RR+vec2(sin(ang1R+ang2-ang3),cos(ang1R+ang2-ang3))*bLen3,bW3));
+  minD = min(minD, sdCap(uv,b2RR,b2RR+vec2(sin(ang1R+ang2+ang3),cos(ang1R+ang2+ang3))*bLen3,bW3));
+
+  return minD;
+}
+
+// Foliage cloud: organic leaf mass SDF (ellipse cluster, domain-warped)
+float foliageSDF(vec2 uv, float cx, float baseY, float sc, float sw){
+  float ar  = uRes.x/uRes.y;
+  float trH = 0.28*sc;
+  vec2  ctr = vec2(cx + sw*0.5, baseY + trH + 0.17*sc);
+  float crW = 0.12*sc/ar;
+  float crH = 0.16*sc;
+  // 3 overlapping ellipses — smooth union
+  float d0 = length((uv-ctr)/vec2(crW,crH))-1.0;
+  float d1 = length((uv-(ctr+vec2(-crW*0.55,crH*0.22)))/vec2(crW*0.82,crH*0.78))-1.0;
+  float d2 = length((uv-(ctr+vec2( crW*0.50,crH*0.15)))/vec2(crW*0.78,crH*0.75))-1.0;
+  float k=0.05*sc;
+  float h; float d=d0;
+  h=max(k-abs(d-d1),0.0)/k; d=min(d,d1)-h*h*k*0.25;
+  h=max(k-abs(d-d2),0.0)/k; d=min(d,d2)-h*h*k*0.25;
+  // Domain-warp the foliage boundary for organic edge
+  vec2 wuv = leafWarp(uv*vec2(6.0/sc,6.0/sc));
+  float edgeNoise = (dfbm(wuv,4)*0.5+0.5)*0.045*sc;
+  return d - edgeNoise;
+}
+
+// Leaf colour with IQ cosine palette + subsurface approximation
+vec3 leafColor(vec2 uv, float cx, float baseY, float sc, float sw, vec3 sunDir){
+  // Cosine palette: organic green variation (aged summer leaves)
+  float n = dfbm(leafWarp(uv*vec2(9.0,9.0)),4)*0.5+0.5;
+  vec3 a=vec3(0.28,0.38,0.12), b=vec3(0.18,0.22,0.08);
+  vec3 c=vec3(0.80,0.60,1.00), dd=vec3(0.00,0.10,0.20);
+  vec3 leafBase = cosPalette(n, a, b, c, dd);
+
+  // Backlit golden tint (subsurface scattering approx)
+  // Thin areas transmit warm amber light
+  float depth = clamp(foliageSDF(uv,cx,baseY,sc,sw)*8.0/sc+0.5, 0.0, 1.0);
+  leafBase = mix(leafBase, vec3(0.62,0.50,0.06), (1.0-depth)*0.55);
+
+  // Sunlit rim highlight
+  float sunFacing = max(dot(normalize(uv-vec2(cx,baseY+0.28*sc)), sunDir.xy), 0.0);
+  leafBase += vec3(0.30,0.24,0.04)*pow(sunFacing,3.0)*0.35;
+
+  // Wind flicker
+  leafBase += vnoise(uv*20.0+uTime*0.22)*0.07*vec3(0.25,0.18,0.03);
+
+  return leafBase;
+}
+
+// Evaluate one depth layer
+float treeLayer(vec2 uv, float sc, float seed,
+                out float branchHit, out float foliageHit){
+  float baseY = 0.50;
+  float innerGap = 0.05 + 0.24*sc;
+  float l0=0.5-(innerGap),        l1=0.5-(innerGap+0.17*sc);
+  float l2=0.5-(innerGap+0.37*sc),l3=0.5-(innerGap+0.60*sc);
   float w0=windSway(l0+seed), w1=windSway(l1+seed);
   float w2=windSway(l2+seed), w3=windSway(l3+seed);
 
-  float minD = 1e5;
-  // Left side
-  minD = min(minD, treeSDF(uv, l0, baseY, sc,  w0));
-  minD = min(minD, treeSDF(uv, l1, baseY, sc,  w1));
-  minD = min(minD, treeSDF(uv, l2, baseY, sc,  w2));
-  minD = min(minD, treeSDF(uv, l3, baseY, sc,  w3));
-  // Right side (mirrored)
-  minD = min(minD, treeSDF(uv, 1.0-l0, baseY, sc, -w0));
-  minD = min(minD, treeSDF(uv, 1.0-l1, baseY, sc, -w1));
-  minD = min(minD, treeSDF(uv, 1.0-l2, baseY, sc, -w2));
-  minD = min(minD, treeSDF(uv, 1.0-l3, baseY, sc, -w3));
+  float brD=1e5, foD=1e5;
+  // Left + right (mirrored) — 4 trees each side
+  brD=min(brD,treeBranchSDF(uv,l0,baseY,sc, w0));
+  brD=min(brD,treeBranchSDF(uv,l1,baseY,sc, w1));
+  brD=min(brD,treeBranchSDF(uv,l2,baseY,sc, w2));
+  brD=min(brD,treeBranchSDF(uv,l3,baseY,sc, w3));
+  brD=min(brD,treeBranchSDF(uv,1.0-l0,baseY,sc,-w0));
+  brD=min(brD,treeBranchSDF(uv,1.0-l1,baseY,sc,-w1));
+  brD=min(brD,treeBranchSDF(uv,1.0-l2,baseY,sc,-w2));
+  brD=min(brD,treeBranchSDF(uv,1.0-l3,baseY,sc,-w3));
 
-  float pxW = 1.5 / uRes.y;
-  return 1.0 - smoothstep(-pxW, pxW, minD);
+  foD=min(foD,foliageSDF(uv,l0,baseY,sc, w0));
+  foD=min(foD,foliageSDF(uv,l1,baseY,sc, w1));
+  foD=min(foD,foliageSDF(uv,l2,baseY,sc, w2));
+  foD=min(foD,foliageSDF(uv,l3,baseY,sc, w3));
+  foD=min(foD,foliageSDF(uv,1.0-l0,baseY,sc,-w0));
+  foD=min(foD,foliageSDF(uv,1.0-l1,baseY,sc,-w1));
+  foD=min(foD,foliageSDF(uv,1.0-l2,baseY,sc,-w2));
+  foD=min(foD,foliageSDF(uv,1.0-l3,baseY,sc,-w3));
+
+  float px=1.5/uRes.y;
+  branchHit  = 1.0-smoothstep(-px,px,brD);
+  foliageHit = 1.0-smoothstep(-px*2.0,px*2.0,foD);
+  return min(brD, foD);
 }
 
 // ── Sky ───────────────────────────────────────────────────────────────────────
-vec3 skyCol(vec2 uv) {
-  // t=0 at horizon (uv.y=0.50), t=1 at top
-  float t = clamp((uv.y - 0.50) / 0.50, 0.0, 1.0);
-  vec3 horizCol = vec3(0.98, 0.72, 0.22);
-  vec3 midCol2  = vec3(0.58, 0.32, 0.12);
-  vec3 apexCol  = vec3(0.09, 0.08, 0.18);
-  vec3 sky = mix(horizCol, midCol2, smoothstep(0.0, 0.45, t));
-  sky       = mix(sky, apexCol, smoothstep(0.4, 1.0, t));
-
-  // Sun: soft golden bloom low on horizon, slightly right
-  vec2 sunPos = vec2(0.63, 0.52);
-  float sd    = length(uv - sunPos);
-  sky += vec3(1.0, 0.88, 0.42) * exp(-sd*18.0) * 2.5;
-  sky += vec3(1.0, 0.76, 0.28) * exp(-sd*5.0)  * 0.45;
-  sky += vec3(0.92,0.58,0.18)  * exp(-sd*1.6)  * 0.16;
-
-  // Horizon haze brightens near ground
-  sky = mix(sky, horizCol * 1.3, exp(-t*7.0) * 0.42);
+vec3 skyCol(vec2 uv){
+  float t=clamp((uv.y-0.50)/0.50,0.0,1.0);
+  vec3 horizCol=vec3(0.98,0.72,0.22), mid=vec3(0.58,0.32,0.12), apex=vec3(0.09,0.08,0.18);
+  vec3 sky=mix(mix(horizCol,mid,smoothstep(0.0,0.45,t)),apex,smoothstep(0.40,1.0,t));
+  // Sun
+  vec2 sunPos=vec2(0.63,0.52); float sd=length(uv-sunPos);
+  sky+=vec3(1.0,0.90,0.45)*exp(-sd*18.0)*2.8;
+  sky+=vec3(1.0,0.76,0.28)*exp(-sd*5.0)*0.50;
+  sky+=vec3(0.90,0.55,0.16)*exp(-sd*1.5)*0.18;
+  // Horizon haze
+  sky=mix(sky,horizCol*1.35,exp(-t*7.0)*0.44);
   return sky;
 }
 
-// ── God rays ──────────────────────────────────────────────────────────────────
-float godRays(vec2 uv) {
-  vec2  sunUV = vec2(0.63, 0.52);
-  vec2  delta = (uv - sunUV) * 0.48 / 32.0;
-  float decay=0.935, wt=0.042, illum=0.0;
-  vec2  tc = uv;
-  for(int i=0;i<32;i++){
-    tc -= delta;
-    // Open-sky sample: above horizon and in the path gap between trees
-    float aboveHorizon = step(0.504, tc.y);
-    float inGap = step(abs(tc.x - 0.5), 0.06 + (tc.y-0.50)*0.18);
-    illum += aboveHorizon * inGap * wt;
-    wt *= decay;
-  }
-  float cone = max(0.0, 1.0 - length(uv-sunUV)*3.2);
-  return clamp(illum,0.0,1.0) * cone;
+// IQ "Better Fog" — sun-coloured
+vec3 applyFog(vec3 col, float depthT, vec3 rd){
+  float fogAmt=1.0-exp(-depthT*2.6);
+  vec3 sunDir2=normalize(vec3(0.6,0.25,0.5));
+  float sunDot=max(dot(rd,vec3(0.0,0.0,1.0)),0.0);
+  vec3 fogCol=mix(vec3(0.42,0.52,0.38), vec3(1.00,0.85,0.50), pow(sunDot,6.0));
+  return mix(col,fogCol,fogAmt*0.72);
 }
 
-// ── Ground & path ─────────────────────────────────────────────────────────────
-// uv.y = 0 (bottom) to 0.50 (horizon)
-vec3 groundColor(vec2 uv) {
-  // depthT: 0=near (bottom), 1=far (horizon)
-  float depthT = clamp(uv.y / 0.50, 0.0, 1.0);
+// God rays (32 samples, constant bound)
+float godRays(vec2 uv){
+  vec2 sunUV=vec2(0.63,0.52);
+  vec2 delta=(uv-sunUV)*0.48/32.0;
+  float decay=0.935,wt=0.04,illum=0.0; vec2 tc=uv;
+  for(int i=0;i<32;i++){
+    tc-=delta;
+    float above=step(0.504,tc.y);
+    float inGap=step(abs(tc.x-0.5), 0.055+(tc.y-0.50)*0.20);
+    illum+=above*inGap*wt; wt*=decay;
+  }
+  return clamp(illum,0.0,1.0)*max(0.0,1.0-length(uv-sunUV)*3.2);
+}
 
-  // Path half-width: wide at bottom (near), narrows to almost zero at horizon
-  float hw = mix(0.38, 0.012, depthT);
-  float dx = abs(uv.x - 0.5);
+// ── Ground — IQ terrain technique ─────────────────────────────────────────────
+vec3 groundColor(vec2 uv){
+  float depthT=clamp(uv.y/0.50,0.0,1.0);
+  float hw=mix(0.36,0.010,depthT);
+  float dx=abs(uv.x-0.5);
+  float pDepth=depthT*5.0;
+  vec2 pUV=vec2((uv.x-0.5)/max(hw,0.01),pDepth);
 
-  // Perspective-correct UV along path
-  float pDepth = depthT * 5.0;
-  vec2  pUV    = vec2((uv.x - 0.5) / max(hw, 0.01), pDepth);
+  // IQ-style terrain: derivative-modulated FBM for path texture
+  float f=dfbm(pUV*3.5+vec2(uTime*0.018,0.0),6)*0.5+0.5;
+  vec3 dirtL=vec3(0.60,0.46,0.30), dirtD=vec3(0.28,0.18,0.10);
+  vec3 dirtCol=mix(dirtD,dirtL,f);
 
-  // Dirt texture
-  float pebble  = fbm4(pUV * 5.0 + vec2(uTime*0.025, 0.0));
-  vec3  dirtL   = vec3(0.62, 0.48, 0.32);
-  vec3  dirtD   = vec3(0.30, 0.20, 0.12);
-  vec3  dirtCol = mix(dirtD, dirtL, pebble);
+  // Ridged detail for pebbles and cracks
+  float crack=ridged(pUV*5.0)*0.5+0.5;
+  dirtCol=mix(dirtCol,vec3(0.20,0.13,0.08),smoothstep(0.6,0.4,crack)*0.4);
 
-  // Dappled amber light on path
-  float dapple = vnoise(pUV * vec2(3.5, 2.0) + uTime * 0.055);
-  dapple = smoothstep(0.58, 0.80, dapple) * (1.0 - depthT*0.6);
-  dirtCol += dapple * vec3(0.42, 0.30, 0.07) * 0.55;
+  // Dappled amber light
+  float dapple=vnoise(pUV*vec2(3.0,1.8)+uTime*0.05);
+  dapple=smoothstep(0.58,0.80,dapple)*(1.0-depthT*0.55);
+  dirtCol+=dapple*vec3(0.42,0.30,0.07)*0.55;
 
-  // Moss edges
-  float edgeF  = smoothstep(0.52, 0.92, dx / max(hw, 0.01));
-  dirtCol      = mix(dirtCol, vec3(0.10, 0.20, 0.05), edgeF * 0.65);
+  // Moss at path edges
+  float edgeF=smoothstep(0.50,0.92,dx/max(hw,0.01));
+  dirtCol=mix(dirtCol,vec3(0.10,0.20,0.05),edgeF*0.65);
 
-  // Forest floor off-path
-  float floorN = fbm4(uv * 7.0 + vec2(uTime*0.012, 0.0));
-  vec3 floorCol = mix(vec3(0.07, 0.13, 0.04), vec3(0.14, 0.24, 0.07), floorN);
+  // Forest floor (off-path)
+  float floorF=dfbm(uv*6.0+vec2(uTime*0.010,0.0),5)*0.5+0.5;
+  vec3 floorCol=mix(vec3(0.07,0.13,0.04),vec3(0.14,0.24,0.07),floorF);
 
-  // Path mask
-  float pm  = 1.0 - smoothstep(hw - 0.012, hw + 0.018, dx);
-  vec3  gnd = mix(floorCol, dirtCol, pm);
+  float pm=1.0-smoothstep(hw-0.012,hw+0.018,dx);
+  vec3 gnd=mix(floorCol,dirtCol,pm);
 
-  // Depth fog (amber tinted, exponential)
-  float fogAmt = 1.0 - exp(-depthT * 2.2);
-  gnd = mix(gnd, vec3(0.68, 0.50, 0.20), fogAmt * 0.70);
+  // IQ Better Fog on ground
+  gnd=applyFog(gnd, depthT, vec3(0.0,0.0,1.0));
   return gnd;
 }
 
-// ── Canopy ────────────────────────────────────────────────────────────────────
-// Only appears in upper portion (uv.y > 0.65), arching from screen edges
-float canopyMask(vec2 uv) {
-  float lateral = abs(uv.x - 0.5) * 2.6;
-  float vertBias = smoothstep(0.65, 1.0, uv.y) * 1.4;
-  float leafN = fbm4(leafWarp(uv * vec2(4.2, 3.0)));
-  return clamp(leafN * lateral * 0.72 + vertBias * 0.32, 0.0, 1.0);
+// ── Canopy overhead ───────────────────────────────────────────────────────────
+float canopyMask(vec2 uv){
+  float lat=abs(uv.x-0.5)*2.6;
+  float vert=smoothstep(0.65,1.0,uv.y)*1.4;
+  float n=dfbm(leafWarp(uv*vec2(4.0,3.0)),4)*0.5+0.5;
+  return clamp(n*lat*0.70+vert*0.32,0.0,1.0);
 }
-vec3 canopyColor(vec2 uv, float msk) {
-  float thinness = 1.0 - smoothstep(0.18, 0.60, msk);
-  float detail   = fbm4(leafWarp(uv * 12.0));
-  vec3  lCol     = mix(vec3(0.04, 0.10, 0.02), vec3(0.20, 0.34, 0.06), detail);
-  lCol = mix(lCol, vec3(0.62, 0.48, 0.06), thinness * 0.52);
-  lCol += vnoise(uv * 18.0 + uTime * 0.22) * 0.09 * vec3(0.26, 0.18, 0.03);
+vec3 canopyColor(vec2 uv,float msk){
+  float thin=1.0-smoothstep(0.18,0.60,msk);
+  float n=dfbm(leafWarp(uv*12.0),4)*0.5+0.5;
+  vec3 a=vec3(0.24,0.35,0.10),b=vec3(0.14,0.18,0.06);
+  vec3 c=vec3(0.80,0.60,1.00),d=vec3(0.00,0.10,0.20);
+  vec3 lCol=cosPalette(n,a,b,c,d);
+  lCol=mix(lCol,vec3(0.60,0.46,0.05),thin*0.52);
+  lCol+=vnoise(uv*18.0+uTime*0.20)*0.08*vec3(0.24,0.17,0.03);
   return lCol;
 }
 
 // ── Tone mapping ──────────────────────────────────────────────────────────────
-vec3 acesTonemap(vec3 x) {
-  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0);
+vec3 acesTonemap(vec3 x){
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
 }
-vec3 cinematicGrade(vec3 col) {
-  float luma = dot(col, vec3(0.299, 0.587, 0.114));
-  col += vec3(0.04, 0.02, 0.0) * (1.0 - smoothstep(0.0, 0.4, luma));
-  col  = mix(vec3(luma), col, 1.20);
-  col  = mix(col, vec3(luma*1.04), smoothstep(0.55, 1.0, luma)*0.22);
+vec3 cinematicGrade(vec3 col){
+  float luma=dot(col,vec3(0.299,0.587,0.114));
+  col+=vec3(0.04,0.02,0.0)*(1.0-smoothstep(0.0,0.4,luma));
+  col=mix(vec3(luma),col,1.20);
+  col=mix(col,vec3(luma*1.04),smoothstep(0.55,1.0,luma)*0.22);
   return col;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-void main() {
-  vec2 uv = gl_FragCoord.xy / uRes;
-  // Subtle mouse parallax
-  uv += (uMouse - 0.5) * vec2(0.015, 0.006);
+void main(){
+  vec2 uv=gl_FragCoord.xy/uRes;
+  uv+=(uMouse-0.5)*vec2(0.014,0.005);
 
-  float horizonY = 0.50;
-  vec3  col;
+  vec3 sunDir=normalize(vec3(0.6,0.25,0.8));
+  float horizonY=0.50;
+  vec3 col;
 
-  // Base: sky above horizon, ground below
-  if(uv.y >= horizonY) {
-    col = skyCol(uv);
-    // God rays only in sky region
-    float gr = godRays(uv);
-    col += gr * vec3(1.0, 0.76, 0.26) * 0.52;
+  if(uv.y>=horizonY){
+    col=skyCol(uv);
+    col+=godRays(uv)*vec3(1.0,0.76,0.26)*0.50;
   } else {
-    col = groundColor(uv);
+    col=groundColor(uv);
   }
 
-  // ── Far tree layer (sc=0.28): small, close to center, heavy amber fog
-  float farA = treeLayer(uv, 0.28, 0.0);
-  if(farA > 0.001) {
-    vec3 farC = mix(vec3(0.09, 0.07, 0.03), vec3(0.60, 0.44, 0.16), 0.82);
-    col = mix(col, farC, farA * 0.84);
+  // Far trees (sc=0.28) — small, near horizon, heavy fog
+  float brF,foF;
+  treeLayer(uv,0.28,0.0,brF,foF);
+  if(foF>0.001){
+    // Leaf colour with fog
+    vec3 lc=leafColor(uv,0.5,0.50,0.28,0.0,sunDir);
+    lc=applyFog(lc,0.88,sunDir);
+    col=mix(col,lc,foF*0.84);
+  }
+  if(brF>0.001){
+    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(14.0,14.0));
+    bc=applyFog(bc,0.88,sunDir);
+    col=mix(col,bc,brF*0.86);
   }
 
-  // ── Mid tree layer (sc=0.55): medium, moderate fog
-  float midA = treeLayer(uv, 0.55, 1.3);
-  if(midA > 0.001) {
-    vec3 midC = mix(vec3(0.06, 0.09, 0.03), vec3(0.46, 0.30, 0.09), 0.46);
-    col = mix(col, midC, midA * 0.93);
+  // Mid trees (sc=0.55)
+  float brM,foM;
+  treeLayer(uv,0.55,1.3,brM,foM);
+  if(foM>0.001){
+    vec3 lc=leafColor(uv,0.5,0.50,0.55,0.0,sunDir);
+    lc=applyFog(lc,0.52,sunDir);
+    col=mix(col,lc,foM*0.90);
+  }
+  if(brM>0.001){
+    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(9.0,9.0));
+    bc=applyFog(bc,0.52,sunDir);
+    col=mix(col,bc,brM*0.92);
   }
 
-  // ── Near tree layer (sc=1.0): large, wide, nearly black, slight fog
-  float nearA = treeLayer(uv, 1.0, 2.7);
-  if(nearA > 0.001) {
-    vec3 nearC = mix(vec3(0.04, 0.05, 0.02), vec3(0.28, 0.18, 0.06), 0.06);
-    col = mix(col, nearC, nearA * 0.97);
+  // Near trees (sc=1.0) — large, dark, minimal fog
+  float brN,foN;
+  treeLayer(uv,1.0,2.7,brN,foN);
+  if(foN>0.001){
+    vec3 lc=leafColor(uv,0.5,0.50,1.0,0.0,sunDir);
+    lc=applyFog(lc,0.06,sunDir);
+    col=mix(col,lc,foN*0.94);
+  }
+  if(brN>0.001){
+    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(5.0,5.0));
+    bc=applyFog(bc,0.06,sunDir);
+    col=mix(col,bc,brN*0.96);
   }
 
-  // ── Canopy overhead (arches from screen edges, top 35%)
-  if(uv.y > 0.62) {
-    float cMask = canopyMask(uv);
-    float cShow = smoothstep(0.0, 0.12, cMask) * smoothstep(0.62, 0.85, uv.y);
-    if(cShow > 0.005) {
-      col = mix(col, canopyColor(uv, cMask), cShow * cMask * 0.90);
-    }
+  // Canopy overhead
+  if(uv.y>0.62){
+    float cMask=canopyMask(uv);
+    float cShow=smoothstep(0.0,0.10,cMask)*smoothstep(0.62,0.85,uv.y);
+    if(cShow>0.005) col=mix(col,canopyColor(uv,cMask),cShow*cMask*0.90);
   }
 
-  // ── Warm glow at horizon (where sky meets treeline)
-  col = mix(col, vec3(0.88, 0.60, 0.14),
-            exp(-abs(uv.y - horizonY) * 26.0) * 0.20);
+  // Horizon warmth at treeline
+  col=mix(col,vec3(0.88,0.60,0.14),exp(-abs(uv.y-horizonY)*26.0)*0.20);
 
-  // ── Tone map + cinematic grade
-  col = cinematicGrade(col);
-  col = acesTonemap(col * 1.18);
-  col = pow(max(col, vec3(0.0)), vec3(1.0/2.2));
+  // Tone map
+  col=cinematicGrade(col);
+  col=acesTonemap(col*1.18);
+  col=pow(max(col,vec3(0.0)),vec3(1.0/2.2));
 
-  // ── Vignette
-  vec2 vd = (uv - 0.5) * vec2(1.0, 1.3);
-  col *= clamp(1.0 - dot(vd,vd) * 1.72, 0.0, 1.0);
+  // Vignette
+  vec2 vd=(uv-0.5)*vec2(1.0,1.3);
+  col*=clamp(1.0-dot(vd,vd)*1.72,0.0,1.0);
 
-  // ── Scroll fade to white
-  col = mix(col, vec3(1.0), uScroll * 0.85);
-
-  O = vec4(col, 1.0);
+  // Scroll fade
+  col=mix(col,vec3(1.0),uScroll*0.85);
+  O=vec4(col,1.0);
 }`);
 
     if (vs && fs) {
