@@ -46,12 +46,52 @@ body {
 ::selection { background: var(--primary); color: white; }
 
 /* ── Shader canvas ── */
-#scene-container {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  z-index: 0;
-  pointer-events: none;
+#scene-container { display: none; }
+
+/* ── Hero gradient background — cross-fade layers ── */
+/* Each layer is one gradient; they fade in/out sequentially via opacity */
+@keyframes gFade0 {
+  0%,100%     { opacity: 1; }
+  20%, 80%    { opacity: 1; }
+  33.33%      { opacity: 0; }
+  66.66%      { opacity: 0; }
+}
+@keyframes gFade1 {
+  0%,100%     { opacity: 0; }
+  20%         { opacity: 0; }
+  33.33%      { opacity: 1; }
+  53.33%      { opacity: 1; }
+  66.66%      { opacity: 0; }
+}
+@keyframes gFade2 {
+  0%,100%     { opacity: 0; }
+  53.33%      { opacity: 0; }
+  66.66%      { opacity: 1; }
+  86.66%      { opacity: 1; }
+  100%        { opacity: 0; }
+}
+
+.hero { position: relative; overflow: hidden; }
+
+/* Base layer — always present underneath */
+.hero-gradient-base {
+  position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(135deg, #0a1628 0%, #0a3d6b 60%, #0a2240 100%);
+}
+.hero-gradient-1 {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(150deg, #0c1f3a 0%, #0A66C2 55%, #0d3a60 100%);
+  animation: gFade0 12s ease-in-out infinite;
+}
+.hero-gradient-2 {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(120deg, #071828 0%, #0e4a8a 50%, #134e5e 100%);
+  animation: gFade1 12s ease-in-out infinite;
+}
+.hero-gradient-3 {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(140deg, #0b1e3a 0%, #1557a0 45%, #0a2d52 100%);
+  animation: gFade2 12s ease-in-out infinite;
 }
 
 /* ── Grid overlay ── */
@@ -283,6 +323,10 @@ section {
   display: flex; align-items: center; justify-content: center;
   text-align: center; position: relative;
   padding: 140px 32px 80px;
+  /* Full-bleed: break out of max-width: 1100px container */
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(-50vw + 50%);
 }
 .hero-content { position: relative; z-index: 2; max-width: 760px; }
 
@@ -314,9 +358,9 @@ section {
 .hero .hero-overline { color: rgba(255,255,255,0.70); }
 .hero .hero-name { color: #fff; }
 .hero .hero-name .accent {
-  background: linear-gradient(135deg, #6BB8FF, #378FE9);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: none;
+  -webkit-background-clip: unset; -webkit-text-fill-color: #ffffff;
+  background-clip: unset;
 }
 .hero .hero-tagline { color: rgba(255,255,255,0.80); }
 .hero .hero-photo {
@@ -1063,6 +1107,10 @@ section {
 
   <!-- HERO -->
   <section class="hero" id="hero">
+    <div class="hero-gradient-base"></div>
+    <div class="hero-gradient-1"></div>
+    <div class="hero-gradient-2"></div>
+    <div class="hero-gradient-3"></div>
     <div class="hero-content">
       <div class="hero-photo-wrap reveal-scale">
         <img class="hero-photo"
@@ -1070,12 +1118,12 @@ section {
           alt="Joachim Søllested">
         <div class="hero-badge">cand.polit.</div>
       </div>
-      <div class="hero-overline">Økonom &middot; Analytiker &middot; Datadrevet rådgiver</div>
+      <div class="hero-overline">cand.polit. &middot; Økonom &middot; Analytiker</div>
       <h1 class="hero-name">
         <span class="name-line"><span class="name-inner">Joachim</span></span>
         <span class="name-line"><span class="name-inner"><span class="accent">Søllested</span></span></span>
       </h1>
-      <p class="hero-tagline">Jeg oversætter komplekse datasæt til klare beslutninger. Med erfaring fra Danske Bank, Skattestyrelsen og offentlig forvaltning bygger jeg broen mellem tal og handling.</p>
+      <p class="hero-tagline">Økonom med dokumenteret erfaring i finansiel styring, ledelsesinformation og datadrevet analyse. Fra Danske Bank og Skattestyrelsen til strategisk rådgivning på tværs af den offentlige sektor.</p>
       <div class="hero-cta-group">
         <a href="#kontakt" class="btn-primary magnetic">
           Kontakt mig
@@ -1175,16 +1223,16 @@ section {
 
   <!-- OM MIG -->
   <section id="om-mig">
-    <div class="section-label reveal">01 — Introduktion</div>
-    <h2 class="section-heading reveal">Økonomi handler om<br>mennesker, ikke kun tal</h2>
+    <div class="section-label reveal">01 — Profil</div>
+    <h2 class="section-heading reveal">Solid faglighed.<br>Tværgående erfaring.</h2>
     <div class="about-content">
       <div class="about-text reveal">
-        <p>cand.polit. med erfaring i finansielle analyser, ledelsesrapportering og tværgående samarbejde fra både finanssektoren og offentlig forvaltning. Trives med at dykke ned i detaljer, identificere optimeringsmuligheder og sikre effektive processer.</p>
-        <p>Gennem stillinger i Danske Bank, Skattestyrelsen, Finanstilsynet og Udviklings- og Forenklingsstyrelsen har jeg opbygget solid erfaring med budgetopfølgning, prognoseudvikling, P&amp;L-analyse og ledelsesinformation. Vant til at arbejde selvstændigt og under tidspres med mange interessenter.</p>
+        <p>cand.polit. fra Københavns Universitet med bred erfaring i finansiel styring, budgetopfølgning og ledelsesinformation fra både den finansielle sektor og centrale statslige myndigheder. Arbejder struktureret med komplekse datasæt og formidler resultater klart til beslutningstagere på alle niveauer.</p>
+        <p>Har varetaget finansielle analyser og rapporteringsopgaver i Danske Bank, Skattestyrelsen, Finanstilsynet og Udviklings- og Forenklingsstyrelsen. Erfaring med P&amp;L-analyse, prognoseudvikling og bestyrelsesrapportering samt implementering af styringsmodeller i tværgående programmer.</p>
       </div>
       <div class="about-stats">
         <div class="stat-card tilt-card reveal-scale"><div class="stat-number">7+</div><div class="stat-label">Års erfaring</div></div>
-        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">5</div><div class="stat-label">Sektorer</div></div>
+        <div class="stat-card tilt-card reveal-scale"><div class="stat-number">5</div><div class="stat-label">Institutioner</div></div>
         <div class="stat-card tilt-card reveal-scale"><div class="stat-number">8+</div><div class="stat-label">Dataværktøjer</div></div>
         <div class="stat-card tilt-card reveal-scale"><div class="stat-number">KU</div><div class="stat-label">cand.polit.</div></div>
       </div>
@@ -1196,37 +1244,37 @@ section {
   <!-- KOMPETENCER -->
   <section id="kompetencer">
     <div class="section-label reveal">02 — Kompetencer</div>
-    <h2 class="section-heading reveal">Specialiseret i det<br>der skaber værdi</h2>
+    <h2 class="section-heading reveal">Kernekompetencer<br>med dokumenteret effekt</h2>
     <div class="skills-grid">
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg></div>
         <div class="skill-name">Budgetopfølgning</div>
-        <div class="skill-desc">Systematisk overvågning af budget vs. forbrug med afvigelsesanalyse</div>
+        <div class="skill-desc">Løbende opfølgning på budget og forbrug med struktureret afvigelsesanalyse og ledelsesorienteret afrapportering</div>
       </div>
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
         <div class="skill-name">Prognoseudvikling</div>
-        <div class="skill-desc">Datadrevne prognoser og forecasting til beslutningsstøtte</div>
+        <div class="skill-desc">Udarbejdelse af datadrevne prognoser og forecasts som grundlag for strategiske og budgetmæssige beslutninger</div>
       </div>
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
         <div class="skill-name">Ledelsesinformation</div>
-        <div class="skill-desc">KPI-rapportering og dashboards til strategisk overblik</div>
+        <div class="skill-desc">Udvikling af KPI-rapportering og dashboards til bestyrelser, direktioner og øvrige beslutningstagere</div>
       </div>
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
         <div class="skill-name">Økonomipartnerskab</div>
-        <div class="skill-desc">Rådgivning af fagområder med økonomisk indsigt</div>
+        <div class="skill-desc">Tæt samarbejde med fagområder om at omsætte økonomidata til handlingsorienterede anbefalinger</div>
       </div>
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
         <div class="skill-name">Power BI &amp; Tableau</div>
-        <div class="skill-desc">Visuel dataformidling og interaktive dashboards</div>
+        <div class="skill-desc">Opbygning af interaktive rapporter og visualiseringer til løbende forretningsopfølgning</div>
       </div>
       <div class="skill-card tilt-card reveal">
         <div class="skill-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg></div>
         <div class="skill-name">SQL &amp; Python</div>
-        <div class="skill-desc">Dataekstraktion, automatisering og avanceret analyse</div>
+        <div class="skill-desc">Dataekstraktion, procesautomatisering og avanceret analyse til at understøtte løbende rapporteringsopgaver</div>
       </div>
     </div>
   </section>
@@ -1236,15 +1284,16 @@ section {
   <!-- ERFARING -->
   <section id="erfaring">
     <div class="section-label reveal">03 — Erfaring</div>
-    <h2 class="section-heading reveal">Fra finans til<br>offentlig forvaltning</h2>
+    <h2 class="section-heading reveal">Erfaring på tværs af<br>finans og forvaltning</h2>
     <div class="timeline">
       <div class="timeline-item reveal">
         <div class="timeline-dot"></div>
         <div class="timeline-card tilt-card">
-          <div class="timeline-role">Selvstændig – Makroanalyse og Investeringer</div>
+          <div class="timeline-role">Selvstændig – Makroøkonomisk analyse og investeringer</div>
           <div class="timeline-meta">Selvstændig <span class="dot"></span> feb 2025 – nu</div>
           <ul class="timeline-highlights">
-            <li>Analyse af makroøkonomiske trends, finansielle markeder og investeringsstrategier</li>
+            <li>Løbende analyse af makroøkonomiske tendenser, finansielle markeder og investeringsstrategier</li>
+            <li>Opbygning af analytiske modeller til vurdering af aktivklasser og porteføljesammensætning</li>
           </ul>
         </div>
       </div>
@@ -1254,9 +1303,9 @@ section {
           <div class="timeline-role">Financial &amp; Performance Management Analyst</div>
           <div class="timeline-meta">Danske Bank <span class="dot"></span> maj 2024 – feb 2025</div>
           <ul class="timeline-highlights">
-            <li>Kvartalsvise Performance Review rapporter med rapportering til Head of Personal Customers, Head of Asset Management, CFO, CEO og bestyrelsen</li>
-            <li>Månedlige P&amp;L rapporter (50-100 mio. kr.) og bestyrelsesrapporter</li>
-            <li>Finansiel rapportering, forecasting og budgetprocesser for forretningsenheder (10-50 mio. kr.)</li>
+            <li>Udarbejdede kvartalsvise Performance Review-rapporter med direkte rapportering til CFO, CEO og bestyrelsen</li>
+            <li>Ansvarlig for månedlige P&amp;L-rapporter (50-100 mio. kr.) og bestyrelsesmateriale</li>
+            <li>Varetog forecasting og budgetprocesser for forretningsenheder med budgetter på 10-50 mio. kr.</li>
           </ul>
         </div>
       </div>
@@ -1266,7 +1315,8 @@ section {
           <div class="timeline-role">Function Operation Officer</div>
           <div class="timeline-meta">Danske Bank <span class="dot"></span> dec 2022 – maj 2024</div>
           <ul class="timeline-highlights">
-            <li>Genberegning af komplekse inkassosager (200+ sager) med krav om detaljeorientering og nøjagtighed</li>
+            <li>Gennemgik og genberegnede 200+ komplekse inkassosager med høje krav til nøjagtighed og dokumentation</li>
+            <li>Bidrog til kvalitetssikring og procesoptimering i tværgående operationel funktion</li>
           </ul>
         </div>
       </div>
@@ -1276,7 +1326,7 @@ section {
           <div class="timeline-role">Fuldmægtig</div>
           <div class="timeline-meta">Finanstilsynet <span class="dot"></span> aug 2022 – dec 2022</div>
           <ul class="timeline-highlights">
-            <li>Myndighedsopgaver: inspektioner, kapitalansøgninger og institutansvar for små og mellemstore pengeinstitutter</li>
+            <li>Varetog myndighedsopgaver herunder inspektioner, behandling af kapitalansøgninger og institutansvar for mindre og mellemstore pengeinstitutter</li>
           </ul>
         </div>
       </div>
@@ -1286,8 +1336,8 @@ section {
           <div class="timeline-role">Fuldmægtig – Udbytteskat &amp; Finansielle Instrumenter</div>
           <div class="timeline-meta">Skattestyrelsen <span class="dot"></span> nov 2020 – jul 2022</div>
           <ul class="timeline-highlights">
-            <li>Sagsbehandling af 100+ sager på udbytteskat fra private og institutionelle investorer (JP Morgan, BlackRock, Fidelity)</li>
-            <li>Mentor for nye kollegaer med ansvar for faglig oplæring og vidensdeling</li>
+            <li>Sagsbehandlede 100+ sager vedrørende udbytteskat fra private og institutionelle investorer, herunder JP Morgan, BlackRock og Fidelity</li>
+            <li>Fungerede som mentor for nye medarbejdere med ansvar for faglig introduktion og videndeling</li>
           </ul>
         </div>
       </div>
@@ -1297,8 +1347,8 @@ section {
           <div class="timeline-role">Studentermedhjælper – Controlling &amp; Økonomi</div>
           <div class="timeline-meta">Udviklings- og Forenklingsstyrelsen <span class="dot"></span> mar 2019 – jul 2020</div>
           <ul class="timeline-highlights">
-            <li>Projektøkonomi, kontraktstyring og månedlige økonomirapporteringer i tværgående program</li>
-            <li>Udviklede Excel VBA-baseret styringsmodel til mere konsistent økonomirapportering</li>
+            <li>Varetog projektøkonomi, kontraktstyring og månedlig økonomirapportering i tværgående digitaliseringsprogram</li>
+            <li>Udviklede Excel VBA-baseret styringsmodel, der øgede konsistensen i økonomirapporteringen på tværs af projekter</li>
           </ul>
         </div>
       </div>
@@ -1308,8 +1358,8 @@ section {
           <div class="timeline-role">Analytisk studentermedhjælper</div>
           <div class="timeline-meta">Roskilde Kommune – Social, Job og Sundhed <span class="dot"></span> mar 2018 – apr 2019</div>
           <ul class="timeline-highlights">
-            <li>Analyse af ledelsesinformation og driftsopgaver baseret på komplekse forløbsdata via Excel VBA</li>
-            <li>Leverede ledelsesinformation til direktionen på social- og sundhedsområdet</li>
+            <li>Analyserede komplekse forløbsdata og omsatte resultaterne til ledelsesinformation via Excel VBA</li>
+            <li>Leverede løbende rapportering til direktionen på social- og sundhedsområdet</li>
           </ul>
         </div>
       </div>
@@ -1321,7 +1371,7 @@ section {
   <!-- UDDANNELSE -->
   <section id="uddannelse">
     <div class="section-label reveal">04 — Uddannelse</div>
-    <h2 class="section-heading reveal">Fagligt fundament</h2>
+    <h2 class="section-heading reveal">Stærkt<br>akademisk fundament</h2>
     <div class="glass-card tilt-card reveal" style="margin-bottom: 20px">
       <div class="education-card-inner">
         <div class="education-icon">
@@ -1353,26 +1403,22 @@ section {
   <!-- KONTAKT -->
   <section class="contact-section" id="kontakt">
     <div class="section-label reveal" style="justify-content:center">05 — Kontakt</div>
-    <h2 class="section-heading reveal" style="text-align:center">Lad os tale<br>om mulighederne</h2>
+    <h2 class="section-heading reveal" style="text-align:center">Tag kontakt<br>og hør mere</h2>
     <div class="glass-card tilt-card reveal" style="max-width:520px;margin:0 auto">
       <div class="contact-card-inner">
         <ul class="contact-list">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>joachim_sollested@msn.com</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.2.94.5 1.86.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.95.2 1.87.5 2.81.7A2 2 0 0122 16.92z"/></svg>+45 60 51 04 16</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>København S</li>
-          <li><a href="https://linkedin.com/in/joachim-søllested" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:16px;color:inherit;text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Joachim Søllested</a></li>
+          <li><a href="https://www.linkedin.com/in/joachim-sollested/" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:16px;color:inherit;text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Joachim Søllested</a></li>
         </ul>
-        <a href="mailto:joachim_sollested@msn.com" class="btn-primary magnetic" style="width:100%;justify-content:center">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
-          Send en email
-        </a>
       </div>
     </div>
   </section>
 
 </div>
 
-<footer class="footer">Designet med omtanke &middot; Joachim Søllested 2026</footer>
+<footer class="footer">Joachim Søllested &middot; cand.polit. &middot; København S &middot; 2026</footer>
 
 <!-- GSAP + ScrollTrigger -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -1390,501 +1436,6 @@ document.addEventListener('mousemove', e => {
 });
 
 if (!prefersReducedMotion) {
-
-  let shaderScroll = 0;
-
-  // ══════════════════════════════════════
-  // WEBGL2 GEOMETRIC GRID SHADER
-  // ══════════════════════════════════════
-  const canvas = document.getElementById('scene-container');
-  const gl = canvas.getContext('webgl2', { alpha: false });
-  if (gl) {
-    const dpr = Math.min(window.devicePixelRatio, 2);
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-
-    function mkS(t, src) {
-      const s = gl.createShader(t);
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('Shader:', gl.getShaderInfoLog(s)); return null; }
-      return s;
-    }
-
-    const vs = mkS(gl.VERTEX_SHADER, `#version 300 es
-in vec2 aPos;
-void main() { gl_Position = vec4(aPos, 0.0, 1.0); }`);
-
-    const fs = mkS(gl.FRAGMENT_SHADER, `#version 300 es
-precision highp float;
-uniform float uTime, uScroll;
-uniform vec2  uRes, uMouse;
-out vec4 O;
-
-// ── IQ-style gradient noise with analytic derivatives ────────────────────────
-// Returns vec3(value, dFdx, dFdy)
-vec2 ghash2(vec2 p) {
-  p = vec2(dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)));
-  return -1.0 + 2.0*fract(sin(p)*43758.5453123);
-}
-vec3 gnoise(vec2 x) {
-  vec2 p = floor(x), f = fract(x);
-  vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
-  vec2 du = 30.0*f*f*(f*(f-2.0)+1.0);
-  vec2 ga=ghash2(p+vec2(0,0)), gb=ghash2(p+vec2(1,0));
-  vec2 gc=ghash2(p+vec2(0,1)), gd=ghash2(p+vec2(1,1));
-  float va=dot(ga,f-vec2(0,0)), vb=dot(gb,f-vec2(1,0));
-  float vc=dot(gc,f-vec2(0,1)), vd=dot(gd,f-vec2(1,1));
-  float val = va+u.x*(vb-va)+u.y*(vc-va)+u.x*u.y*(va-vb-vc+vd);
-  vec2  der = ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd)
-            + du*(u.yx*(va-vb-vc+vd)+vec2(vb,vc)-va);
-  return vec3(val, der);
-}
-
-// Simple value noise
-float hash21(vec2 p) {
-  vec3 q=fract(vec3(p.xyx)*0.1031); q+=dot(q,q.yzx+33.33);
-  return fract((q.x+q.y)*q.z);
-}
-float vnoise(vec2 p) {
-  vec2 i=floor(p),f=fract(p),u=f*f*(3.0-2.0*f);
-  return mix(mix(hash21(i),hash21(i+vec2(1,0)),u.x),
-             mix(hash21(i+vec2(0,1)),hash21(i+vec2(1,1)),u.x),u.y);
-}
-
-// IQ derivative-modulated FBM — suppresses high octaves in steep areas
-// Produces erosion-like organic patterns (bark, terrain)
-float dfbm(vec2 p, int oct) {
-  float a=0.0, b=1.0;
-  vec2  d=vec2(0.0);
-  mat2  rot=mat2(1.6,1.2,-1.2,1.6);
-  for(int i=0;i<8;i++){
-    if(i>=oct) break;
-    vec3 n=gnoise(p);
-    d += n.yz;
-    a += b*n.x/(1.0+dot(d,d));
-    b *= 0.5;
-    p  = rot*p;
-  }
-  return a;
-}
-
-// Ridged multifractal — sharp ridges (bark crevices, veins)
-float ridged(vec2 p) {
-  float v=0.0, amp=0.5, wt=1.0;
-  for(int i=0;i<6;i++){
-    float n=1.0-abs(dot(gnoise(p).yz,vec2(1.0))*0.5+gnoise(p).x);
-    n=n*n*wt; v+=n*amp; wt=clamp(n*2.0,0.0,1.0); amp*=0.5; p*=2.07;
-  }
-  return v;
-}
-
-// IQ cosine palette — organic colour variation
-vec3 cosPalette(float t, vec3 a, vec3 b, vec3 c, vec3 d){
-  return a + b*cos(6.2831853*(c*t+d));
-}
-
-// Leaf warp — wind animation
-vec2 leafWarp(vec2 p){
-  return p+vec2(sin(uTime*0.50+p.x*3.0+p.y*2.5)*0.024,
-                cos(uTime*0.40+p.y*2.8+p.x*1.7)*0.015);
-}
-float windSway(float seed){
-  return sin(uTime*0.60+seed*2.3)*0.011+sin(uTime*2.2+seed*4.8)*0.003;
-}
-
-// ── Bark colour (IQ techniques) ───────────────────────────────────────────────
-vec3 barkColor(vec2 uv) {
-  // Stretch UV: bark has long vertical grain
-  vec2 p = uv * vec2(1.8, 7.0);
-  // Domain warp for organic shape
-  vec2 q = vec2(dfbm(p+vec2(0.0,0.0),4), dfbm(p+vec2(5.2,1.3),4));
-  float f = dfbm(p + 3.5*q, 6) * 0.5 + 0.5;
-  float r = ridged(p*0.8 + 3.0*q) * 0.5 + 0.5;
-  float bark = mix(f, r, 0.45);
-  vec3 dark  = vec3(0.10, 0.07, 0.04);
-  vec3 light = vec3(0.32, 0.22, 0.13);
-  vec3 col   = mix(dark, light, bark);
-  // Moss in deep crevices
-  col = mix(col, vec3(0.12,0.17,0.07), smoothstep(0.42,0.22,bark)*0.5);
-  return col;
-}
-
-// ── Tree SDF with branching ───────────────────────────────────────────────────
-// Capsule SDF
-float sdCap(vec2 p, vec2 a, vec2 b, float r){
-  vec2 pa=p-a,ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);
-  return length(pa-ba*h)-r;
-}
-
-// Iterative branching SDF — 4 levels, unrolled for GLSL ES 3.0
-// All coords in UV space. Tree grows UPWARD from (cx, baseY).
-float treeBranchSDF(vec2 uv, float cx, float baseY, float sc, float sw){
-  float ar   = uRes.x/uRes.y;
-  float minD = 1e5;
-
-  // Scale: trunkH in Y, trunkW in X (aspect-corrected)
-  float trH = 0.28*sc;
-  float trW = 0.010*sc/ar;
-
-  // Trunk base → top (grows straight up with slight wind lean)
-  vec2 tb = vec2(cx, baseY);
-  vec2 tt = vec2(cx + sw*0.4, baseY + trH);
-  minD = min(minD, sdCap(uv, tb, tt, trW));
-
-  // Level 1: 2 main branches from trunk top
-  float bLen1 = 0.14*sc;
-  float bW1   = 0.007*sc/ar;
-  float ang1L = -0.38 + sw*0.3;
-  float ang1R =  0.38 + sw*0.3;
-  vec2 b1L = tt + vec2(sin(ang1L),cos(ang1L))*bLen1;
-  vec2 b1R = tt + vec2(sin(ang1R),cos(ang1R))*bLen1;
-  minD = min(minD, sdCap(uv, tt, b1L, bW1));
-  minD = min(minD, sdCap(uv, tt, b1R, bW1));
-
-  // Level 2: from each L1 endpoint
-  float bLen2 = 0.095*sc;
-  float bW2   = 0.0045*sc/ar;
-  float ang2  = 0.30 + sw*0.2;
-  vec2 b2LL = b1L + vec2(sin(ang1L-ang2),cos(ang1L-ang2))*bLen2;
-  vec2 b2LR = b1L + vec2(sin(ang1L+ang2),cos(ang1L+ang2))*bLen2;
-  vec2 b2RL = b1R + vec2(sin(ang1R-ang2),cos(ang1R-ang2))*bLen2;
-  vec2 b2RR = b1R + vec2(sin(ang1R+ang2),cos(ang1R+ang2))*bLen2;
-  minD = min(minD, sdCap(uv, b1L, b2LL, bW2));
-  minD = min(minD, sdCap(uv, b1L, b2LR, bW2));
-  minD = min(minD, sdCap(uv, b1R, b2RL, bW2));
-  minD = min(minD, sdCap(uv, b1R, b2RR, bW2));
-
-  // Level 3: finer twigs
-  float bLen3 = 0.060*sc;
-  float bW3   = 0.0025*sc/ar;
-  float ang3  = 0.25 + sw*0.15;
-  minD = min(minD, sdCap(uv,b2LL,b2LL+vec2(sin(ang1L-ang2-ang3),cos(ang1L-ang2-ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2LL,b2LL+vec2(sin(ang1L-ang2+ang3),cos(ang1L-ang2+ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2LR,b2LR+vec2(sin(ang1L+ang2-ang3),cos(ang1L+ang2-ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2LR,b2LR+vec2(sin(ang1L+ang2+ang3),cos(ang1L+ang2+ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2RL,b2RL+vec2(sin(ang1R-ang2-ang3),cos(ang1R-ang2-ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2RL,b2RL+vec2(sin(ang1R-ang2+ang3),cos(ang1R-ang2+ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2RR,b2RR+vec2(sin(ang1R+ang2-ang3),cos(ang1R+ang2-ang3))*bLen3,bW3));
-  minD = min(minD, sdCap(uv,b2RR,b2RR+vec2(sin(ang1R+ang2+ang3),cos(ang1R+ang2+ang3))*bLen3,bW3));
-
-  return minD;
-}
-
-// Foliage cloud: organic leaf mass SDF (ellipse cluster, domain-warped)
-float foliageSDF(vec2 uv, float cx, float baseY, float sc, float sw){
-  float ar  = uRes.x/uRes.y;
-  float trH = 0.28*sc;
-  vec2  ctr = vec2(cx + sw*0.5, baseY + trH + 0.17*sc);
-  float crW = 0.12*sc/ar;
-  float crH = 0.16*sc;
-  // 3 overlapping ellipses — smooth union
-  float d0 = length((uv-ctr)/vec2(crW,crH))-1.0;
-  float d1 = length((uv-(ctr+vec2(-crW*0.55,crH*0.22)))/vec2(crW*0.82,crH*0.78))-1.0;
-  float d2 = length((uv-(ctr+vec2( crW*0.50,crH*0.15)))/vec2(crW*0.78,crH*0.75))-1.0;
-  float k=0.05*sc;
-  float h; float d=d0;
-  h=max(k-abs(d-d1),0.0)/k; d=min(d,d1)-h*h*k*0.25;
-  h=max(k-abs(d-d2),0.0)/k; d=min(d,d2)-h*h*k*0.25;
-  // Domain-warp the foliage boundary for organic edge
-  vec2 wuv = leafWarp(uv*vec2(6.0/sc,6.0/sc));
-  float edgeNoise = (dfbm(wuv,4)*0.5+0.5)*0.045*sc;
-  return d - edgeNoise;
-}
-
-// Leaf colour with IQ cosine palette + subsurface approximation
-vec3 leafColor(vec2 uv, float cx, float baseY, float sc, float sw, vec3 sunDir){
-  // Cosine palette: organic green variation (aged summer leaves)
-  float n = dfbm(leafWarp(uv*vec2(9.0,9.0)),4)*0.5+0.5;
-  vec3 a=vec3(0.28,0.38,0.12), b=vec3(0.18,0.22,0.08);
-  vec3 c=vec3(0.80,0.60,1.00), dd=vec3(0.00,0.10,0.20);
-  vec3 leafBase = cosPalette(n, a, b, c, dd);
-
-  // Backlit golden tint (subsurface scattering approx)
-  // Thin areas transmit warm amber light
-  float depth = clamp(foliageSDF(uv,cx,baseY,sc,sw)*8.0/sc+0.5, 0.0, 1.0);
-  leafBase = mix(leafBase, vec3(0.62,0.50,0.06), (1.0-depth)*0.55);
-
-  // Sunlit rim highlight
-  float sunFacing = max(dot(normalize(uv-vec2(cx,baseY+0.28*sc)), sunDir.xy), 0.0);
-  leafBase += vec3(0.30,0.24,0.04)*pow(sunFacing,3.0)*0.35;
-
-  // Wind flicker
-  leafBase += vnoise(uv*20.0+uTime*0.22)*0.07*vec3(0.25,0.18,0.03);
-
-  return leafBase;
-}
-
-// Evaluate one depth layer
-float treeLayer(vec2 uv, float sc, float seed,
-                out float branchHit, out float foliageHit){
-  float baseY = 0.50;
-  float innerGap = 0.05 + 0.24*sc;
-  float l0=0.5-(innerGap),        l1=0.5-(innerGap+0.17*sc);
-  float l2=0.5-(innerGap+0.37*sc),l3=0.5-(innerGap+0.60*sc);
-  float w0=windSway(l0+seed), w1=windSway(l1+seed);
-  float w2=windSway(l2+seed), w3=windSway(l3+seed);
-
-  float brD=1e5, foD=1e5;
-  // Left + right (mirrored) — 4 trees each side
-  brD=min(brD,treeBranchSDF(uv,l0,baseY,sc, w0));
-  brD=min(brD,treeBranchSDF(uv,l1,baseY,sc, w1));
-  brD=min(brD,treeBranchSDF(uv,l2,baseY,sc, w2));
-  brD=min(brD,treeBranchSDF(uv,l3,baseY,sc, w3));
-  brD=min(brD,treeBranchSDF(uv,1.0-l0,baseY,sc,-w0));
-  brD=min(brD,treeBranchSDF(uv,1.0-l1,baseY,sc,-w1));
-  brD=min(brD,treeBranchSDF(uv,1.0-l2,baseY,sc,-w2));
-  brD=min(brD,treeBranchSDF(uv,1.0-l3,baseY,sc,-w3));
-
-  foD=min(foD,foliageSDF(uv,l0,baseY,sc, w0));
-  foD=min(foD,foliageSDF(uv,l1,baseY,sc, w1));
-  foD=min(foD,foliageSDF(uv,l2,baseY,sc, w2));
-  foD=min(foD,foliageSDF(uv,l3,baseY,sc, w3));
-  foD=min(foD,foliageSDF(uv,1.0-l0,baseY,sc,-w0));
-  foD=min(foD,foliageSDF(uv,1.0-l1,baseY,sc,-w1));
-  foD=min(foD,foliageSDF(uv,1.0-l2,baseY,sc,-w2));
-  foD=min(foD,foliageSDF(uv,1.0-l3,baseY,sc,-w3));
-
-  float px=1.5/uRes.y;
-  branchHit  = 1.0-smoothstep(-px,px,brD);
-  foliageHit = 1.0-smoothstep(-px*2.0,px*2.0,foD);
-  return min(brD, foD);
-}
-
-// ── Sky ───────────────────────────────────────────────────────────────────────
-vec3 skyCol(vec2 uv){
-  float t=clamp((uv.y-0.50)/0.50,0.0,1.0);
-  vec3 horizCol=vec3(0.98,0.72,0.22), mid=vec3(0.58,0.32,0.12), apex=vec3(0.09,0.08,0.18);
-  vec3 sky=mix(mix(horizCol,mid,smoothstep(0.0,0.45,t)),apex,smoothstep(0.40,1.0,t));
-  // Sun
-  vec2 sunPos=vec2(0.63,0.52); float sd=length(uv-sunPos);
-  sky+=vec3(1.0,0.90,0.45)*exp(-sd*18.0)*2.8;
-  sky+=vec3(1.0,0.76,0.28)*exp(-sd*5.0)*0.50;
-  sky+=vec3(0.90,0.55,0.16)*exp(-sd*1.5)*0.18;
-  // Horizon haze
-  sky=mix(sky,horizCol*1.35,exp(-t*7.0)*0.44);
-  return sky;
-}
-
-// IQ "Better Fog" — sun-coloured
-vec3 applyFog(vec3 col, float depthT, vec3 rd){
-  float fogAmt=1.0-exp(-depthT*2.6);
-  vec3 sunDir2=normalize(vec3(0.6,0.25,0.5));
-  float sunDot=max(dot(rd,vec3(0.0,0.0,1.0)),0.0);
-  vec3 fogCol=mix(vec3(0.42,0.52,0.38), vec3(1.00,0.85,0.50), pow(sunDot,6.0));
-  return mix(col,fogCol,fogAmt*0.72);
-}
-
-// God rays (32 samples, constant bound)
-float godRays(vec2 uv){
-  vec2 sunUV=vec2(0.63,0.52);
-  vec2 delta=(uv-sunUV)*0.48/32.0;
-  float decay=0.935,wt=0.04,illum=0.0; vec2 tc=uv;
-  for(int i=0;i<32;i++){
-    tc-=delta;
-    float above=step(0.504,tc.y);
-    float inGap=step(abs(tc.x-0.5), 0.055+(tc.y-0.50)*0.20);
-    illum+=above*inGap*wt; wt*=decay;
-  }
-  return clamp(illum,0.0,1.0)*max(0.0,1.0-length(uv-sunUV)*3.2);
-}
-
-// ── Ground — IQ terrain technique ─────────────────────────────────────────────
-vec3 groundColor(vec2 uv){
-  float depthT=clamp(uv.y/0.50,0.0,1.0);
-  float hw=mix(0.36,0.010,depthT);
-  float dx=abs(uv.x-0.5);
-  float pDepth=depthT*5.0;
-  vec2 pUV=vec2((uv.x-0.5)/max(hw,0.01),pDepth);
-
-  // IQ-style terrain: derivative-modulated FBM for path texture
-  float f=dfbm(pUV*3.5+vec2(uTime*0.018,0.0),6)*0.5+0.5;
-  vec3 dirtL=vec3(0.60,0.46,0.30), dirtD=vec3(0.28,0.18,0.10);
-  vec3 dirtCol=mix(dirtD,dirtL,f);
-
-  // Ridged detail for pebbles and cracks
-  float crack=ridged(pUV*5.0)*0.5+0.5;
-  dirtCol=mix(dirtCol,vec3(0.20,0.13,0.08),smoothstep(0.6,0.4,crack)*0.4);
-
-  // Dappled amber light
-  float dapple=vnoise(pUV*vec2(3.0,1.8)+uTime*0.05);
-  dapple=smoothstep(0.58,0.80,dapple)*(1.0-depthT*0.55);
-  dirtCol+=dapple*vec3(0.42,0.30,0.07)*0.55;
-
-  // Moss at path edges
-  float edgeF=smoothstep(0.50,0.92,dx/max(hw,0.01));
-  dirtCol=mix(dirtCol,vec3(0.10,0.20,0.05),edgeF*0.65);
-
-  // Forest floor (off-path)
-  float floorF=dfbm(uv*6.0+vec2(uTime*0.010,0.0),5)*0.5+0.5;
-  vec3 floorCol=mix(vec3(0.07,0.13,0.04),vec3(0.14,0.24,0.07),floorF);
-
-  float pm=1.0-smoothstep(hw-0.012,hw+0.018,dx);
-  vec3 gnd=mix(floorCol,dirtCol,pm);
-
-  // IQ Better Fog on ground
-  gnd=applyFog(gnd, depthT, vec3(0.0,0.0,1.0));
-  return gnd;
-}
-
-// ── Canopy overhead ───────────────────────────────────────────────────────────
-float canopyMask(vec2 uv){
-  float lat=abs(uv.x-0.5)*2.6;
-  float vert=smoothstep(0.65,1.0,uv.y)*1.4;
-  float n=dfbm(leafWarp(uv*vec2(4.0,3.0)),4)*0.5+0.5;
-  return clamp(n*lat*0.70+vert*0.32,0.0,1.0);
-}
-vec3 canopyColor(vec2 uv,float msk){
-  float thin=1.0-smoothstep(0.18,0.60,msk);
-  float n=dfbm(leafWarp(uv*12.0),4)*0.5+0.5;
-  vec3 a=vec3(0.24,0.35,0.10),b=vec3(0.14,0.18,0.06);
-  vec3 c=vec3(0.80,0.60,1.00),d=vec3(0.00,0.10,0.20);
-  vec3 lCol=cosPalette(n,a,b,c,d);
-  lCol=mix(lCol,vec3(0.60,0.46,0.05),thin*0.52);
-  lCol+=vnoise(uv*18.0+uTime*0.20)*0.08*vec3(0.24,0.17,0.03);
-  return lCol;
-}
-
-// ── Tone mapping ──────────────────────────────────────────────────────────────
-vec3 acesTonemap(vec3 x){
-  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
-}
-vec3 cinematicGrade(vec3 col){
-  float luma=dot(col,vec3(0.299,0.587,0.114));
-  col+=vec3(0.04,0.02,0.0)*(1.0-smoothstep(0.0,0.4,luma));
-  col=mix(vec3(luma),col,1.20);
-  col=mix(col,vec3(luma*1.04),smoothstep(0.55,1.0,luma)*0.22);
-  return col;
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-void main(){
-  vec2 uv=gl_FragCoord.xy/uRes;
-  uv+=(uMouse-0.5)*vec2(0.014,0.005);
-
-  vec3 sunDir=normalize(vec3(0.6,0.25,0.8));
-  float horizonY=0.50;
-  vec3 col;
-
-  if(uv.y>=horizonY){
-    col=skyCol(uv);
-    col+=godRays(uv)*vec3(1.0,0.76,0.26)*0.50;
-  } else {
-    col=groundColor(uv);
-  }
-
-  // Far trees (sc=0.28) — small, near horizon, heavy fog
-  float brF,foF;
-  treeLayer(uv,0.28,0.0,brF,foF);
-  if(foF>0.001){
-    // Leaf colour with fog
-    vec3 lc=leafColor(uv,0.5,0.50,0.28,0.0,sunDir);
-    lc=applyFog(lc,0.88,sunDir);
-    col=mix(col,lc,foF*0.84);
-  }
-  if(brF>0.001){
-    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(14.0,14.0));
-    bc=applyFog(bc,0.88,sunDir);
-    col=mix(col,bc,brF*0.86);
-  }
-
-  // Mid trees (sc=0.55)
-  float brM,foM;
-  treeLayer(uv,0.55,1.3,brM,foM);
-  if(foM>0.001){
-    vec3 lc=leafColor(uv,0.5,0.50,0.55,0.0,sunDir);
-    lc=applyFog(lc,0.52,sunDir);
-    col=mix(col,lc,foM*0.90);
-  }
-  if(brM>0.001){
-    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(9.0,9.0));
-    bc=applyFog(bc,0.52,sunDir);
-    col=mix(col,bc,brM*0.92);
-  }
-
-  // Near trees (sc=1.0) — large, dark, minimal fog
-  float brN,foN;
-  treeLayer(uv,1.0,2.7,brN,foN);
-  if(foN>0.001){
-    vec3 lc=leafColor(uv,0.5,0.50,1.0,0.0,sunDir);
-    lc=applyFog(lc,0.06,sunDir);
-    col=mix(col,lc,foN*0.94);
-  }
-  if(brN>0.001){
-    vec3 bc=barkColor((uv-vec2(0.5,0.50))*vec2(5.0,5.0));
-    bc=applyFog(bc,0.06,sunDir);
-    col=mix(col,bc,brN*0.96);
-  }
-
-  // Canopy overhead
-  if(uv.y>0.62){
-    float cMask=canopyMask(uv);
-    float cShow=smoothstep(0.0,0.10,cMask)*smoothstep(0.62,0.85,uv.y);
-    if(cShow>0.005) col=mix(col,canopyColor(uv,cMask),cShow*cMask*0.90);
-  }
-
-  // Horizon warmth at treeline
-  col=mix(col,vec3(0.88,0.60,0.14),exp(-abs(uv.y-horizonY)*26.0)*0.20);
-
-  // Tone map
-  col=cinematicGrade(col);
-  col=acesTonemap(col*1.18);
-  col=pow(max(col,vec3(0.0)),vec3(1.0/2.2));
-
-  // Vignette
-  vec2 vd=(uv-0.5)*vec2(1.0,1.3);
-  col*=clamp(1.0-dot(vd,vd)*1.72,0.0,1.0);
-
-  // Scroll fade
-  col=mix(col,vec3(1.0),uScroll*0.85);
-  O=vec4(col,1.0);
-}`);
-
-    if (vs && fs) {
-      const prog = gl.createProgram();
-      gl.attachShader(prog, vs);
-      gl.attachShader(prog, fs);
-      gl.linkProgram(prog);
-
-      const vao = gl.createVertexArray();
-      gl.bindVertexArray(vao);
-      const buf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-      const loc = gl.getAttribLocation(prog, 'aPos');
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-      gl.useProgram(prog);
-      const uTimeLoc = gl.getUniformLocation(prog, 'uTime');
-      const uResLoc = gl.getUniformLocation(prog, 'uRes');
-      const uMouseLoc = gl.getUniformLocation(prog, 'uMouse');
-      const uScrollLoc = gl.getUniformLocation(prog, 'uScroll');
-
-      let sTime = 0, lastT = 0, focused = true;
-      document.addEventListener('visibilitychange', () => { focused = !document.hidden; });
-
-      (function render(now) {
-        requestAnimationFrame(render);
-        if (!focused) { lastT = now; return; }
-        const dt = Math.min((now - lastT) / 1000, 0.05);
-        lastT = now;
-        sTime += dt;
-        const d = Math.min(window.devicePixelRatio, 2);
-        const cw = window.innerWidth * d | 0;
-        const ch = window.innerHeight * d | 0;
-        if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        gl.uniform1f(uTimeLoc, sTime);
-        gl.uniform2f(uResLoc, canvas.width, canvas.height);
-        gl.uniform2f(uMouseLoc, mouseX / window.innerWidth, 1.0 - mouseY / window.innerHeight);
-        gl.uniform1f(uScrollLoc, shaderScroll);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-      })(0);
-    }
-  } else {
-    canvas.style.background = 'linear-gradient(180deg, #4A7FBF, #7BB3E0 50%, #C8DFF2)';
-  }
 
   // ══════════════════════════════════════
   // LENIS SMOOTH SCROLL
@@ -1987,12 +1538,8 @@ void main(){
     .to('.hero-cta-group', { opacity: 1, duration: 0.7 }, '-=0.3')
     .to('.scroll-hint', { opacity: 1, duration: 0.7 }, '-=0.1');
 
-  // Shader scroll coupling + canvas fade
-  ScrollTrigger.create({
-    trigger: '.hero', start: 'top top', end: 'bottom top',
-    onUpdate: self => { shaderScroll = self.progress; }
-  });
-  gsap.to('#scene-container', {
+  // Hero gradient fade on scroll
+  gsap.to('.hero::before', {
     opacity: 0,
     scrollTrigger: { trigger: '.hero', start: 'bottom 80%', end: 'bottom 20%', scrub: true }
   });
