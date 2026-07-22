@@ -37,8 +37,8 @@
   --glow-2: rgba(224, 144, 106, 0.14);
   --glow-3: rgba(224, 144, 106, 0.2);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 30px rgba(0, 0, 0, 0.22);
-  --shadow-btn: 0 6px 18px rgba(205, 122, 82, 0.28);
-  --radius: 20px;
+  --shadow-btn: 0 3px 12px rgba(205, 122, 82, 0.18);
+  --radius: 22px;
   --radius-s: 13px;
   --ease-spring: cubic-bezier(0.34, 1.4, 0.44, 1);
   --ease-out: cubic-bezier(0.22, 0.8, 0.3, 1);
@@ -57,7 +57,7 @@
   --teal-soft: rgba(201, 123, 78, 0.11);
   --sand: #5f7f9e;
   --sand-soft: rgba(122, 149, 173, 0.13);
-  --border: rgba(55, 46, 40, 0.08);
+  --border: rgba(55, 46, 40, 0.05);
   --border-strong: rgba(55, 46, 40, 0.16);
   --good: #35845d;
   --bad: #b3564c;
@@ -66,7 +66,7 @@
   --glow-2: rgba(192, 112, 73, 0.10);
   --glow-3: rgba(192, 112, 73, 0.18);
   --shadow-card: 0 1px 2px rgba(55, 46, 40, 0.05), 0 10px 28px rgba(55, 46, 40, 0.07);
-  --shadow-btn: 0 6px 18px rgba(192, 112, 73, 0.24);
+  --shadow-btn: 0 3px 12px rgba(192, 112, 73, 0.15);
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -102,11 +102,11 @@ main > *:nth-child(n+6) { animation-delay: 0.2s; }
 
 /* ── topbar ── */
 #topbar {
-  padding: calc(18px + env(safe-area-inset-top)) 22px 10px;
+  padding: calc(24px + env(safe-area-inset-top)) 22px 12px;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   min-height: 58px;
 }
-#topbar h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+#topbar h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.15; }
 #topbar .sub {
   font-size: 11.5px; color: var(--muted); font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 3px;
@@ -122,9 +122,9 @@ main > *:nth-child(n+6) { animation-delay: 0.2s; }
 /* ── kort ── */
 .card {
   background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-  box-shadow: var(--shadow-card); padding: 20px; margin-bottom: 14px;
+  box-shadow: var(--shadow-card); padding: 22px; margin-bottom: 16px;
 }
-.card h2 { font-size: 16.5px; font-weight: 750; letter-spacing: -0.2px; margin-bottom: 6px; }
+.card h2 { font-size: 17px; font-weight: 750; letter-spacing: -0.25px; margin-bottom: 6px; }
 .card .h2row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .card .h2row h2 { margin-bottom: 0; }
 .kicker {
@@ -132,10 +132,7 @@ main > *:nth-child(n+6) { animation-delay: 0.2s; }
   text-transform: uppercase; color: var(--teal); opacity: 0.8; margin-bottom: 7px;
 }
 .card.hero {
-  background:
-    radial-gradient(130% 130% at 12% 0%, var(--teal-soft), transparent 55%),
-    radial-gradient(120% 120% at 100% 100%, var(--sand-soft), transparent 55%),
-    var(--card);
+  background: radial-gradient(150% 150% at 10% 0%, var(--teal-soft), transparent 58%), var(--card);
   border-color: var(--border-strong);
 }
 .card.hero h2 { font-size: 20px; letter-spacing: -0.35px; }
@@ -145,8 +142,8 @@ main > *:nth-child(n+6) { animation-delay: 0.2s; }
 /* ── knapper ── */
 .btn {
   display: block; width: 100%; padding: 15px; border-radius: 15px;
-  background: linear-gradient(160deg, var(--teal), var(--teal-strong));
-  color: var(--btn-text); font-size: 16.5px; font-weight: 750; letter-spacing: -0.1px;
+  background: var(--teal);
+  color: var(--btn-text); font-size: 16px; font-weight: 700; letter-spacing: -0.1px;
   text-align: center; box-shadow: var(--shadow-btn);
   transition: transform 0.14s var(--ease-spring), box-shadow 0.2s, opacity 0.15s;
 }
@@ -274,7 +271,7 @@ textarea.tinput { resize: vertical; min-height: 60px; line-height: 1.55; }
 .flowhead { display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 20px 0; }
 .flowhead .x { font-size: 15px; color: var(--muted); font-weight: 650; padding: 8px; }
 .blockcard { text-align: center; padding: 26px 20px 22px; }
-.blockcard .emoji { font-size: 46px; display: block; margin-bottom: 10px; filter: drop-shadow(0 4px 14px var(--glow-3)); }
+.blockcard .emoji { font-size: 44px; display: block; margin-bottom: 10px; }
 .blockcard h2 { font-size: 21px; letter-spacing: -0.3px; margin-bottom: 5px; }
 .blockcard .lead { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.55; }
 .blockcard .list { text-align: left; margin-bottom: 14px; }
@@ -488,16 +485,16 @@ body.in-flow #app { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 
 /* ── dagens overblik ── */
 .ovrow { display: flex; gap: 8px; }
-.ovseg { flex: 1; background: var(--card-soft); border-radius: 14px; padding: 11px 6px; text-align: center; border: 1px solid transparent; transition: all 0.18s; }
+.ovseg { flex: 1; background: var(--card-soft); border-radius: 15px; padding: 13px 6px; text-align: center; border: 1px solid transparent; transition: all 0.18s; }
 .ovseg:active { transform: scale(0.96); }
-.ovseg .ic { font-size: 17px; display: block; margin-bottom: 3px; }
+.ovseg .ic { display: none; }
 .ovseg .t { font-size: 11px; font-weight: 750; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: 0.05em; }
-.ovseg .st { font-size: 12.5px; font-weight: 800; display: block; margin-top: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ovseg .st { font-size: 15px; font-weight: 800; display: block; margin-top: 3px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ovseg.done { background: var(--teal-soft); border-color: var(--teal); }
 .ovseg.done .st, .ovseg.done .t { color: var(--teal); }
 .nextline {
   margin-top: 12px; width: 100%; text-align: left; font-size: 14px; font-weight: 650; color: var(--text);
-  background: var(--teal-soft); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px;
+  background: var(--teal-soft); border: none; border-radius: 14px; padding: 13px 15px;
   display: flex; gap: 10px; align-items: center; line-height: 1.4;
 }
 .nextline .nk { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); flex: none; }
@@ -1194,7 +1191,6 @@ function overviewCard(rec, pe) {
   const hasPain = !!(pe && Object.keys(pe).length);
   const evCount = EVENING_ITEMS.filter(it => rec && rec.evening && rec.evening[it.key]).length;
   const card = h('div', { class: 'card' });
-  card.appendChild(h('span', { class: 'kicker' }, 'Dagens overblik'));
   const seg = (ic, t, st, done, onclick) => h('button', { type: 'button', class: 'ovseg' + (done ? ' done' : ''), onclick },
     h('span', { class: 'ic' }, ic), h('span', { class: 't' }, t), h('span', { class: 'st' }, st));
   card.appendChild(h('div', { class: 'ovrow' },
@@ -1224,21 +1220,18 @@ function renderHome() {
     /* intet kort */
   } else if (rec && (rec.progress || 0) > 0) {
     mcard = h('div', { class: 'card' });
-    mcard.appendChild(h('span', { class: 'kicker' }, 'Morgen'));
-    mcard.appendChild(h('h2', null, 'Du er i gang 🌿'));
+    mcard.appendChild(h('h2', null, 'Du er i gang'));
     mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Fortsæt, når du er klar — der er ingen hast.'));
     mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Fortsæt rutinen'));
   } else {
     mcard = h('div', { class: 'card' });
-    mcard.appendChild(h('span', { class: 'kicker' }, 'Morgen'));
-    mcard.appendChild(h('h2', null, 'Din morgenrutine er klar, når du er 🌿'));
+    mcard.appendChild(h('h2', null, 'Din morgenrutine er klar, når du er'));
     mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Du bestemmer, hvornår den begynder. Ét trin ad gangen, og alt kan springes over.'));
-    mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Godmorgen 🌿'));
+    mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Godmorgen'));
   }
 
   /* dagens smertedagbog */
   const pcard = h('div', { class: 'card' });
-  pcard.appendChild(h('span', { class: 'kicker' }, 'Krop & dag'));
   pcard.appendChild(h('h2', null, 'Dagens registrering'));
   if (pe && Object.keys(pe).length) {
     const bits = [];
@@ -1249,14 +1242,13 @@ function renderHome() {
     pcard.appendChild(h('div', { class: 'chipwrap', style: 'margin-bottom:12px;margin-top:2px' }, bits));
     pcard.appendChild(h('button', { type: 'button', class: 'btn ghost', onclick: () => { state.painDate = iso; state.tab = 'track'; render(); window.scrollTo(0, 0); } }, 'Se / ret registreringen'));
   } else {
-    pcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Smerte, humør, søvn og resten — det tager under et minut, og alt er valgfrit.'));
+    pcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Smerte, humør og søvn — under et minut, og alt er valgfrit.'));
     pcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => { state.painDate = iso; state.tab = 'track'; render(); window.scrollTo(0, 0); } }, 'Udfyld dagens registrering'));
-    if (new Date().getHours() >= 18) pcard.appendChild(h('p', { class: 'nudgeline' }, 'Måske nu? Det tager under et minut 💙'));
+    if (new Date().getHours() >= 18) pcard.appendChild(h('p', { class: 'nudgeline' }, 'Måske nu? Det tager under et minut'));
   }
 
   /* aften */
   const ecard = h('div', { class: 'card', id: 'evening-card' });
-  ecard.appendChild(h('span', { class: 'kicker' }, 'Aften'));
   ecard.appendChild(h('h2', null, 'I aften'));
   ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'Blide holdepunkter — ikke pligter.'));
   for (const it of EVENING_ITEMS) {
@@ -1279,7 +1271,6 @@ function renderHome() {
   let jcard = null;
   if (!dayHasJournal(iso) && !(rec && rec.flowDone)) {
     jcard = h('div', { class: 'card' },
-      h('span', { class: 'kicker' }, 'Dagbog'),
       h('h2', null, 'Kun dagbogen?'),
       h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Du kan også bare skrive de fire linjer — det tæller.'),
       h('button', { type: 'button', class: 'btn ghost', onclick: () => startFlow(true) }, 'Skriv dagens dagbog'));
@@ -1510,7 +1501,7 @@ function renderTrack() {
 
   const quick = h('div', { class: 'card' });
   quick.appendChild(h('h2', null, 'Dagens vigtigste'));
-  quick.appendChild(h('div', { class: 'hintline' }, 'Kun et minut — alt er valgfrit. Tryk på et tal igen for at rydde det.'));
+  quick.appendChild(h('div', { class: 'hintline' }, 'Alt er valgfrit — tryk på et tal igen for at rydde.'));
   quick.appendChild(scaleField('pain_level', 'Smerteniveau', { dir: 'neg', hint: HINT_NEG_PAIN }));
   quick.appendChild(scaleField('mood', 'Humør', { dir: 'pos', hint: HINT_POS }));
   quick.appendChild(scaleField('energy', 'Energi', { dir: 'pos', hint: '0 = udmattet · 10 = fuld af energi' }));
@@ -1520,7 +1511,7 @@ function renderTrack() {
 
   const act = h('div', { class: 'card' });
   act.appendChild(h('h2', null, 'Aktiviteter & praksis'));
-  act.appendChild(h('div', { class: 'hintline' }, 'Sæt hak ved det, du har gjort i dag — minutter er valgfrit.'));
+  act.appendChild(h('div', { class: 'hintline' }, 'Sæt hak — minutter er valgfrit.'));
   for (const p of SPEC_PRACTICES) {
     act.appendChild(activityRow(p.label,
       () => getVal(p.key),
@@ -1614,7 +1605,7 @@ function renderTrack() {
   } }, 'Gem dagens registrering');
   main.appendChild(saveBtn);
   main.appendChild(h('p', { class: 'center-muted', style: 'padding-top:10px' },
-    'Alt gemmes automatisk, mens du skriver — knappen er blot en ekstra bekræftelse.'));
+    'Alt gemmes automatisk undervejs.'));
 }
 
 /* ════════════════════════ Indsigt (Krop) ════════════════════════ */
