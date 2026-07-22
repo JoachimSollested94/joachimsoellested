@@ -1218,20 +1218,19 @@ function renderHome() {
   const rec = dcDays[iso];
   const pe = getPainEntry(iso);
 
-  /* morgenrutine */
-  const mcard = h('div', { class: 'card' });
-  mcard.appendChild(h('span', { class: 'kicker' }, 'Morgen'));
+  /* morgenrutine — kortet forsvinder helt, når rutinen er færdig (overblikket viser fluebenet) */
+  let mcard = null;
   if (rec && rec.flowDone) {
-    mcard.appendChild(h('h2', null, 'Morgenrutinen er færdig 💚'));
-    mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:10px' }, 'Godt gået. Resten af dagen må gerne være blød.'));
-    mcard.appendChild(h('div', { class: 'chipwrap' },
-      BLOCK_DEFS.map(b => h('span', { class: 'chip' + ((rec.blocks || {})[b.key] ? '' : ' off') },
-        ((rec.blocks || {})[b.key] ? '✓ ' : '· ') + b.title.split(' — ')[0]))));
+    /* intet kort */
   } else if (rec && (rec.progress || 0) > 0) {
+    mcard = h('div', { class: 'card' });
+    mcard.appendChild(h('span', { class: 'kicker' }, 'Morgen'));
     mcard.appendChild(h('h2', null, 'Du er i gang 🌿'));
     mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Fortsæt, når du er klar — der er ingen hast.'));
     mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Fortsæt rutinen'));
   } else {
+    mcard = h('div', { class: 'card' });
+    mcard.appendChild(h('span', { class: 'kicker' }, 'Morgen'));
     mcard.appendChild(h('h2', null, 'Din morgenrutine er klar, når du er 🌿'));
     mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Du bestemmer, hvornår den begynder. Ét trin ad gangen, og alt kan springes over.'));
     mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Godmorgen 🌿'));
@@ -1254,13 +1253,6 @@ function renderHome() {
     pcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => { state.painDate = iso; state.tab = 'track'; render(); window.scrollTo(0, 0); } }, 'Udfyld dagens registrering'));
     if (new Date().getHours() >= 18) pcard.appendChild(h('p', { class: 'nudgeline' }, 'Måske nu? Det tager under et minut 💙'));
   }
-
-  /* ro-kort */
-  const ccard = h('div', { class: 'card' },
-    h('span', { class: 'kicker' }, 'Ro'),
-    h('h2', null, 'Brug for et roligt øjeblik?'),
-    h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'To minutters blød vejrtrækning — ind 4, ud 6.'),
-    h('button', { type: 'button', class: 'btn ghost', onclick: () => openPacer(2) }, 'Start 2 min vejrtrækning'));
 
   /* aften */
   const ecard = h('div', { class: 'card', id: 'evening-card' });
@@ -1295,8 +1287,9 @@ function renderHome() {
 
   /* Rækkefølgen følger døgnet: om aftenen rykker registrering og aften-holdepunkter øverst. */
   const evening = new Date().getHours() >= 17;
-  const order = evening ? [pcard, ecard, ccard, mcard, jcard] : [mcard, pcard, ccard, ecard, jcard];
-  order[0].classList.add('hero');
+  const order = evening ? [pcard, ecard, mcard, jcard] : [mcard, pcard, ecard, jcard];
+  const firstCard = order.find(c => c);
+  if (firstCard) firstCard.classList.add('hero');
   main.appendChild(overviewCard(rec, pe));
   for (const c of order) if (c) main.appendChild(c);
 }
