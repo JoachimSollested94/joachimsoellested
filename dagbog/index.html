@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Smertedagbog</title>
+<meta name="description" content="Privat daglig dagbog til smerte og trivsel. Alle data gemmes kun på din egen enhed.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f6f8">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f151b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Smertedagbog">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --card-soft: #eef2f5;
+  --text: #1c2733;
+  --muted: #66707c;
+  --primary: #3d7a8a;
+  --primary-soft: rgba(61, 122, 138, 0.12);
+  --border: rgba(28, 39, 51, 0.10);
+  --good: #4a9d6e;
+  --warn: #d99a3d;
+  --bad: #c4574e;
+  --shadow: 0 1px 4px rgba(28, 39, 51, 0.07);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f151b;
+    --card: #18212a;
+    --card-soft: #1f2a35;
+    --text: #e8edf2;
+    --muted: #8b98a5;
+    --primary: #6fb0c0;
+    --primary-soft: rgba(111, 176, 192, 0.16);
+    --border: rgba(232, 237, 242, 0.10);
+    --shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overscroll-behavior-y: none;
+}
+button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; touch-action: manipulation; }
+input, textarea, select { font-family: inherit; font-size: 16px; color: var(--text); }
+
+#app { max-width: 560px; margin: 0 auto; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+/* ── Topbar ── */
+#topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--bg);
+  padding: calc(10px + env(safe-area-inset-top)) 16px 8px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 54px;
+}
+#topbar h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; }
+#topbar .sub { font-size: 13px; color: var(--muted); font-weight: 500; }
+.saved-badge {
+  font-size: 13px; font-weight: 600; color: var(--good);
+  opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+}
+.saved-badge.show { opacity: 1; }
+.datenav { display: flex; align-items: center; gap: 2px; }
+.datenav button {
+  width: 40px; height: 40px; border-radius: 12px; font-size: 20px; color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.datenav button:disabled { opacity: 0.25; }
+.datenav button:active { background: var(--primary-soft); }
+
+/* ── Main / views ── */
+main { padding: 4px 16px 24px; }
+.card {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 16px; margin-bottom: 12px;
+}
+.card h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.card .h2row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.card .h2row h2 { margin-bottom: 0; }
+.hintline { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+
+details.card { padding: 0; }
+details.card > summary {
+  list-style: none; cursor: pointer; padding: 15px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 15px; font-weight: 700; -webkit-tap-highlight-color: transparent;
+}
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary .chev { color: var(--muted); transition: transform 0.2s; font-size: 13px; }
+details.card[open] > summary .chev { transform: rotate(90deg); }
+details.card > .inner { padding: 0 16px 16px; }
+summary .sumnote { font-size: 12.5px; color: var(--muted); font-weight: 500; margin-right: auto; margin-left: 8px; }
+
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field > label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.field .hint { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+
+/* 0–10 pills */
+.pills { display: flex; gap: 3px; }
+.pills button {
+  flex: 1; height: 42px; border-radius: 10px; font-size: 14.5px; font-weight: 600;
+  background: var(--card-soft); color: var(--muted);
+  border: 1px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.pills button.sel { color: #fff; font-weight: 700; }
+
+/* text & textarea */
+.tinput, textarea.tinput {
+  width: 100%; padding: 11px 12px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--card-soft);
+  outline: none;
+}
+.tinput:focus { border-color: var(--primary); }
+textarea.tinput { resize: vertical; min-height: 60px; }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.chips button {
+  font-size: 13px; padding: 6px 11px; border-radius: 999px;
+  background: var(--primary-soft); color: var(--primary); font-weight: 600;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* stepper */
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button {
+  width: 42px; height: 42px; border-radius: 11px; background: var(--card-soft);
+  font-size: 22px; font-weight: 600; color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.stepper button:active { background: var(--primary-soft); }
+.stepper input {
+  width: 74px; height: 42px; text-align: center; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--card-soft); outline: none;
+  -moz-appearance: textfield;
+}
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.stepper .unit { font-size: 13px; color: var(--muted); }
+
+/* segmented */
+.seg { display: flex; gap: 5px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto; min-height: 40px; padding: 8px 10px; border-radius: 11px; font-size: 14px; font-weight: 600;
+  background: var(--card-soft); color: var(--muted); border: 1px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.seg button.sel { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.seg-desc { font-size: 12.5px; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+
+/* activity rows */
+.actrow { display: flex; align-items: center; gap: 10px; min-height: 46px; }
+.actrow + .actrow { border-top: 1px solid var(--border); }
+.actrow .tick {
+  width: 27px; height: 27px; border-radius: 9px; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center; flex: none;
+  font-size: 15px; color: transparent; background: var(--card-soft);
+}
+.actrow.done .tick { background: var(--good); border-color: var(--good); color: #fff; }
+.actrow .aname { flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px 0; text-align: left; }
+.actrow .mins { display: none; align-items: center; gap: 5px; }
+.actrow.done .mins { display: flex; }
+.actrow .mins input {
+  width: 58px; height: 38px; text-align: center; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card-soft); outline: none;
+}
+.actrow .mins span { font-size: 12.5px; color: var(--muted); }
+
+/* buttons */
+.btn {
+  display: block; width: 100%; padding: 14px; border-radius: 13px;
+  background: var(--primary); color: #fff; font-size: 16px; font-weight: 700;
+  text-align: center; -webkit-tap-highlight-color: transparent;
+}
+.btn:active { opacity: 0.85; }
+.btn.secondary { background: var(--primary-soft); color: var(--primary); }
+.btn.danger { background: rgba(196, 87, 78, 0.12); color: var(--bad); }
+.btn.small { display: inline-block; width: auto; padding: 8px 14px; font-size: 13.5px; border-radius: 10px; }
+.linkbtn { color: var(--primary); font-weight: 600; font-size: 13.5px; }
+
+/* sparkline / today header card */
+.spark-card { display: flex; align-items: center; gap: 14px; }
+.spark-info { flex: 1; min-width: 0; }
+.spark-info .big { font-size: 14px; font-weight: 700; }
+.spark-info .sm { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 4px; }
+
+/* nudge banner */
+.nudge {
+  background: var(--primary-soft); border: 1px solid var(--primary); border-radius: var(--radius);
+  color: var(--primary); font-size: 14px; font-weight: 600; padding: 12px 14px; margin-bottom: 12px;
+}
+
+/* history */
+.cal { width: 100%; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-head .m { font-size: 15px; font-weight: 700; text-transform: capitalize; }
+.cal-head button { width: 38px; height: 38px; border-radius: 11px; font-size: 18px; color: var(--primary); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid .dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 3px 0; }
+.cal-cell {
+  aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 600;
+  background: var(--card-soft); color: var(--muted); position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-cell.empty { background: transparent; }
+.cal-cell.future { opacity: 0.3; }
+.cal-cell.has { color: #fff; }
+.cal-cell.today-c { outline: 2px solid var(--primary); outline-offset: 1px; }
+.hist-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 4px;
+  width: 100%; text-align: left; border-bottom: 1px solid var(--border);
+}
+.hist-item:last-child { border-bottom: none; }
+.hist-item .dot { width: 12px; height: 12px; border-radius: 6px; flex: none; background: var(--card-soft); }
+.hist-item .d { flex: 1; min-width: 0; }
+.hist-item .d .t { display: block; font-size: 14.5px; font-weight: 600; }
+.hist-item .d .s { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-item .chev { color: var(--muted); font-size: 14px; }
+
+/* insights */
+.ins-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 10px; line-height: 1.4; }
+.cmp-row { margin-bottom: 12px; }
+.cmp-row:last-child { margin-bottom: 0; }
+.cmp-row .lbl { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.cmp-row .lbl span:last-child { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.bar-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.bar-wrap .tag { font-size: 11px; color: var(--muted); width: 44px; flex: none; }
+.bar-track { flex: 1; height: 10px; border-radius: 5px; background: var(--card-soft); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 5px; }
+.bar-val { font-size: 12px; font-weight: 700; width: 34px; text-align: right; flex: none; }
+.corr-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.corr-row:last-child { border-bottom: none; }
+.corr-row .n1 { flex: 1; font-size: 13.5px; font-weight: 600; }
+.corr-row .n2 { font-size: 11.5px; color: var(--muted); width: 48px; text-align: right; }
+.corr-track { width: 110px; height: 9px; background: var(--card-soft); border-radius: 5px; position: relative; flex: none; }
+.corr-track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border); }
+.corr-fill { position: absolute; top: 0; height: 100%; border-radius: 4px; }
+.corr-r { font-size: 12.5px; font-weight: 700; width: 46px; text-align: right; flex: none; }
+.pill-note { display: inline-block; background: var(--card-soft); color: var(--muted); border-radius: 8px; font-size: 12px; padding: 3px 8px; font-weight: 600; }
+
+/* settings */
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: none; }
+.set-row .sl { font-size: 14.5px; font-weight: 600; flex: 1; }
+.set-row .sd { font-size: 12.5px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+.set-row input[type="time"] {
+  border: 1px solid var(--border); background: var(--card-soft); border-radius: 10px; padding: 8px 10px;
+}
+.act-edit { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.act-edit:last-child { border-bottom: none; }
+.act-edit input { flex: 1; min-width: 0; }
+.act-edit .del { color: var(--bad); font-size: 18px; width: 38px; height: 38px; flex: none; border-radius: 10px; }
+.safety {
+  font-size: 13.5px; line-height: 1.55; color: var(--text);
+  background: var(--primary-soft); border-radius: 11px; padding: 12px 14px;
+}
+
+/* tabbar */
+#tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+  background: var(--card); border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto;
+}
+#tabbar button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 4px 0; border-radius: 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+#tabbar button.sel { color: var(--primary); }
+#tabbar svg { width: 23px; height: 23px; }
+
+/* modal */
+.modal-back {
+  position: fixed; inset: 0; background: rgba(10, 16, 22, 0.55); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.modal {
+  background: var(--card); border-radius: 18px; padding: 22px; max-width: 420px; width: 100%;
+  max-height: 82vh; overflow-y: auto;
+}
+.modal h2 { font-size: 18px; margin-bottom: 10px; }
+.modal p { font-size: 14.5px; line-height: 1.55; margin-bottom: 10px; }
+.modal .btn { margin-top: 8px; }
+
+.center-muted { text-align: center; color: var(--muted); font-size: 14px; padding: 18px 8px; line-height: 1.5; }
+.support-line { font-size: 12.5px; color: var(--primary); font-weight: 600; margin-top: 6px; }
+h3.groupt { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 18px 2px 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar"></header>
+  <main id="main"></main>
+  <nav id="tabbar"></nav>
+</div>
+<div id="modal-root"></div>
+
+<script>
+'use strict';
+
+/* ═══════════════════ Konstanter & konfiguration ═══════════════════ */
+
+const ENTRIES_KEY = 'smertedagbog.entries.v1';
+const SETTINGS_KEY = 'smertedagbog.settings.v1';
+const APP_VERSION = '1.0.0';
+const APP_URL = 'https://joachimsollested94.github.io/joachimsoellested/dagbog/';
+
+const HINT_NEG = '0 = ingen · 10 = mest intens';
+const HINT_NEG_PAIN = '0 = ingen · 10 = værst tænkelig';
+const HINT_POS = '0 = i bund · 10 = i top';
+
+const WOT_OPTIONS = [
+  { value: 'in_window', label: 'I vinduet', desc: 'Rolig og i stand til at klare det — følelserne føles håndterbare.' },
+  { value: 'hyper', label: 'Hyper', desc: 'Overaktiveret: anspændt, panisk, overvældet, kan ikke slukke.' },
+  { value: 'hypo', label: 'Hypo', desc: 'Underaktiveret: følelsesløs, lukket ned, flad, frakoblet.' },
+  { value: 'edge', label: 'På kanten', desc: 'Tæt på at vippe ud af vinduet.' }
+];
+const WORST_TIME_OPTIONS = [
+  { value: 'morning', label: 'Morgen' }, { value: 'midday', label: 'Middag' },
+  { value: 'afternoon', label: 'Eftermiddag' }, { value: 'evening', label: 'Aften' },
+  { value: 'night', label: 'Nat' }
+];
+const MEDS_OPTIONS = [
+  { value: 'yes', label: 'Ja' }, { value: 'partly', label: 'Delvist' }, { value: 'no', label: 'Nej' }
+];
+
+const SPEC_PRACTICES = [
+  { key: 'training', label: 'Træning' },
+  { key: 'somatic_work', label: 'Somatisk arbejde' },
+  { key: 'hypnosis', label: 'Hypnose' }
+];
+
+const DEFAULT_SETTINGS = {
+  reminderTime: '20:00',
+  activities: [
+    { id: 'gaatur', label: 'Gåtur / tid udenfor' },
+    { id: 'udstraekning', label: 'Udstrækning / yoga' },
+    { id: 'meditation', label: 'Meditation / åndedræt' }
+  ],
+  safetySeen: false
+};
+
+/* Numeriske faktorer til indsigt (nøgle → dansk label, typisk skala-spænd til normalisering) */
+const FACTORS = [
+  { key: 'sleep_hours', label: 'Søvn (timer)', range: 12 },
+  { key: 'hours_sitting', label: 'Timer siddende', range: 14 },
+  { key: 'hours_around_people', label: 'Timer blandt mennesker', range: 14 },
+  { key: 'social_stress', label: 'Social belastning', range: 10 },
+  { key: 'stress_level', label: 'Stress', range: 10 },
+  { key: 'caffeine_cups', label: 'Koffein (kopper)', range: 8 },
+  { key: 'alcohol_units', label: 'Alkohol (genstande)', range: 10 },
+  { key: 'water_glasses', label: 'Vand (glas)', range: 12 },
+  { key: 'mood', label: 'Humør', range: 10 },
+  { key: 'motivation', label: 'Motivation', range: 10 },
+  { key: 'energy', label: 'Energi', range: 10 },
+  { key: 'anxiety', label: 'Angst / uro', range: 10 },
+  { key: 'inner_tension', label: 'Indre spænding', range: 10 },
+  { key: 'overthinking', label: 'Overtænkning', range: 10 },
+  { key: 'hopelessness', label: 'Håbløshed', range: 10 },
+  { key: 'irritability', label: 'Irritabilitet', range: 10 }
+];
+
+const SAFETY_TEXT = 'Denne dagbog er et personligt registreringsværktøj — ikke lægelig rådgivning eller medicinsk udstyr. Del den gerne med din læge. Hvis håbløsheden føles overvældende, så kontakt din læge eller en krisetelefon (fx Livslinien, 70 201 201) — du behøver ikke klare det alene.';
+
+/* ═══════════════════ Hjælpere ═══════════════════ */
+
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c === null || c === undefined || c === false) continue;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function addDays(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+function isoToDate(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+const fmtLong = new Intl.DateTimeFormat('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtShort = new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'short' });
+const fmtMonth = new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' });
+function ucfirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function fmtNum(x, digits) {
+  if (digits === undefined) digits = 1;
+  return Number(x).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: digits });
+}
+
+/* Sværhedsfarve: sev 0 (godt) → 1 (slemt).  grøn → gul → rød */
+function sevColor(sev) {
+  const hue = Math.round(145 - sev * 137);
+  return 'hsl(' + hue + ', 52%, 44%)';
+}
+function painColor(v) { return sevColor(v / 10); }
+
+function isNum(v) { return typeof v === 'number' && isFinite(v); }
+
+/* ═══════════════════ Lager ═══════════════════ */
+
+let entries = {};
+let settings = {};
+
+function loadAll() {
+  try { entries = JSON.parse(localStorage.getItem(ENTRIES_KEY)) || {}; } catch (e) { entries = {}; }
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { s = {}; }
+  settings = Object.assign({}, DEFAULT_SETTINGS, s);
+  if (!Array.isArray(settings.activities)) settings.activities = DEFAULT_SETTINGS.activities.slice();
+}
+function persistEntries() { localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries)); }
+function persistSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+/* Fjern tomme værdier; slet hele dagen hvis intet er udfyldt. 0 er en gyldig værdi! */
+function pruneEntry(date) {
+  const e = entries[date];
+  if (!e) return;
+  for (const k of Object.keys(e)) {
+    const v = e[k];
+    if (v === '' || v === null || v === undefined) delete e[k];
+    else if (typeof v === 'object' && !Array.isArray(v)) {
+      if (k === 'activities') {
+        for (const id of Object.keys(v)) {
+          const a = v[id];
+          if (!a || (!a.done && !isNum(a.minutes))) delete v[id];
+        }
+        if (Object.keys(v).length === 0) delete e[k];
+      } else { /* praksis {done, minutes} */
+        if (!v.done && !isNum(v.minutes)) delete e[k];
+      }
+    }
+  }
+  if (Object.keys(e).length === 0) delete entries[date];
+}
+
+let saveTimer = null;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    pruneEntry(state.date);
+    persistEntries();
+    showSaved();
+  }, 350);
+}
+function showSaved() {
+  const b = document.querySelector('.saved-badge');
+  if (!b) return;
+  b.classList.add('show');
+  clearTimeout(showSaved._t);
+  showSaved._t = setTimeout(() => b.classList.remove('show'), 1600);
+}
+
+function getEntry(date) { return entries[date] || null; }
+function ensureEntry(date) {
+  if (!entries[date]) entries[date] = {};
+  return entries[date];
+}
+function setVal(key, value) {
+  const e = ensureEntry(state.date);
+  if (value === '' || value === null || value === undefined) delete e[key];
+  else e[key] = value;
+  scheduleSave();
+}
+function getVal(key) {
+  const e = getEntry(state.date);
+  return e ? e[key] : undefined;
+}
+function sortedDates() { return Object.keys(entries).sort(); }
+function entryCount() { return Object.keys(entries).length; }
+
+/* Tidligere brugte værdier til forslags-chips */
+function historyValues(key, excludeDate, max) {
+  const seen = new Set(); const out = [];
+  const dates = sortedDates().reverse();
+  for (const d of dates) {
+    if (d === excludeDate) continue;
+    const v = entries[d][key];
+    if (typeof v === 'string' && v.trim() && !seen.has(v.trim().toLowerCase())) {
+      seen.add(v.trim().toLowerCase());
+      out.push(v.trim());
+      if (out.length >= (max || 5)) break;
+    }
+  }
+  return out;
+}
+
+/* ═══════════════════ App-tilstand ═══════════════════ */
+
+const state = {
+  tab: 'today',
+  date: todayISO(),
+  histMonth: null   /* 'YYYY-MM' der vises i kalenderen */
+};
+
+/* ═══════════════════ Feltkomponenter ═══════════════════ */
+
+function scaleField(key, label, opts) {
+  /* opts: { dir: 'neg'|'pos', hint } — sværhed: neg → v/10, pos → (10-v)/10 */
+  const cur = getVal(key);
+  const wrap = h('div', { class: 'field', 'data-field': key });
+  wrap.appendChild(h('label', null, label));
+  wrap.appendChild(h('div', { class: 'hint' }, opts.hint));
+  const pills = h('div', { class: 'pills', role: 'group', 'aria-label': label });
+  for (let v = 0; v <= 10; v++) {
+    const sev = opts.dir === 'neg' ? v / 10 : (10 - v) / 10;
+    const btn = h('button', {
+      type: 'button',
+      'aria-pressed': cur === v ? 'true' : 'false',
+      onclick: () => {
+        const now = getVal(key);
+        const newVal = (now === v) ? undefined : v;   /* tryk igen = ryd */
+        setVal(key, newVal === undefined ? '' : newVal);
+        for (let i = 0; i <= 10; i++) {
+          const b = pills.children[i];
+          const on = newVal === i;
+          b.classList.toggle('sel', on);
+          b.style.background = on ? sevColor(opts.dir === 'neg' ? i / 10 : (10 - i) / 10) : '';
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+        extraUpdate();
+      }
+    }, String(v));
+    if (cur === v) { btn.classList.add('sel'); btn.style.background = sevColor(sev); }
+    pills.appendChild(btn);
+  }
+  wrap.appendChild(pills);
+  const extra = h('div');
+  wrap.appendChild(extra);
+  function extraUpdate() {
+    extra.innerHTML = '';
+    if (key === 'hopelessness' && isNum(getVal(key)) && getVal(key) >= 7) {
+      extra.appendChild(h('div', { class: 'support-line' },
+        'Husk: du behøver ikke stå alene med det — Livslinien 70 201 201 ♥'));
+    }
+  }
+  extraUpdate();
+  return wrap;
+}
+
+function textField(key, label, opts) {
+  opts = opts || {};
+  const cur = getVal(key);
+  const wrap = h('div', { class: 'field', 'data-field': key });
+  wrap.appendChild(h('label', null, label));
+  if (opts.hint) wrap.appendChild(h('div', { class: 'hint' }, opts.hint));
+  const input = opts.area
+    ? h('textarea', { class: 'tinput', rows: '2', placeholder: opts.placeholder || '' })
+    : h('input', { class: 'tinput', type: 'text', placeholder: opts.placeholder || '', autocomplete: 'off' });
+  input.value = (typeof cur === 'string') ? cur : '';
+  input.addEventListener('input', () => setVal(key, input.value.trim() === '' ? '' : input.value));
+  wrap.appendChild(input);
+  if (opts.chips) {
+    const vals = historyValues(key, state.date).filter(v => v !== input.value);
+    if (vals.length) {
+      const chips = h('div', { class: 'chips' });
+      for (const v of vals) chips.appendChild(h('button', {
+        type: 'button',
+        onclick: () => { input.value = v; setVal(key, v); }
+      }, v.length > 34 ? v.slice(0, 32) + '…' : v));
+      wrap.appendChild(chips);
+    }
+  }
+  return wrap;
+}
+
+function numberField(key, label, opts) {
+  opts = opts || {};
+  const step = opts.step || 1;
+  const wrap = h('div', { class: 'field', 'data-field': key });
+  wrap.appendChild(h('label', null, label));
+  if (opts.hint) wrap.appendChild(h('div', { class: 'hint' }, opts.hint));
+  const input = h('input', { type: 'number', inputmode: 'decimal', min: '0', step: String(step) });
+  const cur = getVal(key);
+  input.value = isNum(cur) ? String(cur) : '';
+  function commit(v) {
+    if (v === '' || v === null || isNaN(Number(v)) || Number(v) < 0) { setVal(key, ''); input.value = ''; }
+    else { const n = Math.round(Number(v) * 100) / 100; setVal(key, n); input.value = String(n); }
+  }
+  input.addEventListener('input', () => {
+    const v = input.value;
+    if (v === '') setVal(key, '');
+    else if (!isNaN(Number(v)) && Number(v) >= 0) setVal(key, Math.round(Number(v) * 100) / 100);
+  });
+  const minus = h('button', { type: 'button', 'aria-label': label + ' minus', onclick: () => {
+    const now = isNum(getVal(key)) ? getVal(key) : 0;
+    commit(Math.max(0, now - step));
+  } }, '−');
+  const plus = h('button', { type: 'button', 'aria-label': label + ' plus', onclick: () => {
+    const now = isNum(getVal(key)) ? getVal(key) : 0;
+    commit(now + step);
+  } }, '+');
+  const row = h('div', { class: 'stepper' }, minus, input, plus);
+  if (opts.unit) row.appendChild(h('span', { class: 'unit' }, opts.unit));
+  wrap.appendChild(row);
+  return wrap;
+}
+
+function enumField(key, label, options, opts) {
+  opts = opts || {};
+  const wrap = h('div', { class: 'field', 'data-field': key });
+  wrap.appendChild(h('label', null, label));
+  if (opts.hint) wrap.appendChild(h('div', { class: 'hint' }, opts.hint));
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+  const desc = h('div', { class: 'seg-desc' });
+  function renderDesc() {
+    const cur = getVal(key);
+    const opt = options.find(o => o.value === cur);
+    desc.textContent = (opt && opt.desc) ? opt.desc : '';
+    desc.style.display = (opt && opt.desc) ? '' : 'none';
+  }
+  for (const o of options) {
+    const btn = h('button', {
+      type: 'button',
+      onclick: () => {
+        const now = getVal(key);
+        const newVal = now === o.value ? '' : o.value;
+        setVal(key, newVal);
+        for (const b of seg.children) b.classList.toggle('sel', b === btn && newVal !== '');
+        renderDesc();
+      }
+    }, o.label);
+    if (getVal(key) === o.value) btn.classList.add('sel');
+    seg.appendChild(btn);
+  }
+  wrap.appendChild(seg);
+  wrap.appendChild(desc);
+  renderDesc();
+  return wrap;
+}
+
+/* Aktivitetsrække: praksis (direkte nøgle) eller brugerdefineret (entry.activities[id]) */
+function activityRow(label, getA, setA) {
+  const a = getA() || {};
+  const row = h('div', { class: 'actrow' + (a.done ? ' done' : '') });
+  const tick = h('button', { type: 'button', class: 'tick', 'aria-label': label, onclick: toggle }, '✓');
+  const name = h('button', { type: 'button', class: 'aname', onclick: toggle }, label);
+  const minInput = h('input', { type: 'number', inputmode: 'numeric', min: '0', step: '5', placeholder: '0' });
+  minInput.value = isNum(a.minutes) ? String(a.minutes) : '';
+  minInput.addEventListener('input', () => {
+    const cur = getA() || {};
+    const v = minInput.value === '' ? undefined : Math.max(0, Math.round(Number(minInput.value)));
+    setA({ done: cur.done || false, minutes: v });
+  });
+  function toggle() {
+    const cur = getA() || {};
+    const nowDone = !cur.done;
+    setA(nowDone || isNum(cur.minutes) ? { done: nowDone, minutes: cur.minutes } : null);
+    row.classList.toggle('done', nowDone);
+  }
+  row.appendChild(tick);
+  row.appendChild(name);
+  row.appendChild(h('div', { class: 'mins' }, minInput, h('span', null, 'min')));
+  return row;
+}
+
+/* ═══════════════════ Visning: I dag ═══════════════════ */
+
+function copyFromYesterday(keys) {
+  const y = getEntry(addDays(state.date, -1));
+  if (!y) return false;
+  const e = ensureEntry(state.date);
+  let copied = false;
+  for (const k of keys) {
+    if (y[k] !== undefined && y[k] !== '') { e[k] = y[k]; copied = true; }
+  }
+  if (copied) { scheduleSave(); renderMain(); }
+  return copied;
+}
+
+function sparkline() {
+  /* seneste 7 dage frem til i dag: smerte (rød-ish) + humør (grøn) */
+  const days = [];
+  for (let i = 6; i >= 0; i--) days.push(addDays(todayISO(), -i));
+  const pain = days.map(d => { const e = getEntry(d); return e && isNum(e.pain_level) ? e.pain_level : null; });
+  const mood = days.map(d => { const e = getEntry(d); return e && isNum(e.mood) ? e.mood : null; });
+  const W = 150, H = 44;
+  function pts(arr) {
+    const out = [];
+    arr.forEach((v, i) => { if (v !== null) out.push([6 + i * (W - 12) / 6, H - 5 - (v / 10) * (H - 10)]); });
+    return out;
+  }
+  function path(arr) {
+    const p = pts(arr);
+    if (!p.length) return '';
+    return p.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+  }
+  function dots(arr, color) {
+    return pts(arr).map(q => '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="2.6" fill="' + color + '"/>').join('');
+  }
+  const hasAny = pain.some(v => v !== null) || mood.some(v => v !== null);
+  if (!hasAny) return null;
+  const svg = h('div', { html:
+    '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
+    '<path d="' + path(pain) + '" fill="none" stroke="#c4574e" stroke-width="2" stroke-linecap="round"/>' +
+    '<path d="' + path(mood) + '" fill="none" stroke="#4a9d6e" stroke-width="2" stroke-linecap="round"/>' +
+    dots(pain, '#c4574e') + dots(mood, '#4a9d6e') +
+    '</svg>' });
+  return svg.firstChild;
+}
+
+function renderToday() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const isToday = state.date === todayISO();
+
+  /* Blid påmindelse efter kl. 18 */
+  if (isToday && new Date().getHours() >= 18 && !getEntry(state.date)) {
+    main.appendChild(h('div', { class: 'nudge' }, 'Klar til dagens registrering? Det tager under et minut 💙'));
+  }
+
+  /* Uge-overblik */
+  const spark = sparkline();
+  if (spark) {
+    main.appendChild(h('div', { class: 'card spark-card' },
+      h('div', { class: 'spark-info' },
+        h('div', { class: 'big' }, 'Din uge'),
+        h('div', { class: 'sm' }, entryCount() + (entryCount() === 1 ? ' dag registreret i alt' : ' dage registreret i alt')),
+        h('div', { class: 'legend' },
+          h('span', null, h('i', { style: 'background:#c4574e' }), 'Smerte'),
+          h('span', null, h('i', { style: 'background:#4a9d6e' }), 'Humør'))),
+      spark));
+  }
+
+  /* ── Dagens vigtigste ── */
+  const quick = h('div', { class: 'card' });
+  quick.appendChild(h('h2', null, 'Dagens vigtigste'));
+  quick.appendChild(h('div', { class: 'hintline' }, 'Kun et minut — alt er valgfrit. Tryk på et tal igen for at rydde det.'));
+  quick.appendChild(scaleField('pain_level', 'Smerteniveau', { dir: 'neg', hint: HINT_NEG_PAIN }));
+  quick.appendChild(scaleField('mood', 'Humør', { dir: 'pos', hint: HINT_POS }));
+  quick.appendChild(scaleField('energy', 'Energi', { dir: 'pos', hint: '0 = udmattet · 10 = fuld af energi' }));
+  quick.appendChild(numberField('sleep_hours', 'Søvn i nat', { step: 0.5, unit: 'timer' }));
+  quick.appendChild(scaleField('stress_level', 'Stressniveau', { dir: 'neg', hint: HINT_NEG }));
+  main.appendChild(quick);
+
+  /* ── Aktiviteter & praksis ── */
+  const act = h('div', { class: 'card' });
+  act.appendChild(h('h2', null, 'Aktiviteter & praksis'));
+  act.appendChild(h('div', { class: 'hintline' }, 'Sæt hak ved det, du har gjort i dag — minutter er valgfrit.'));
+  for (const p of SPEC_PRACTICES) {
+    act.appendChild(activityRow(p.label,
+      () => getVal(p.key),
+      (v) => setVal(p.key, v === null ? '' : v)));
+  }
+  for (const a of settings.activities) {
+    act.appendChild(activityRow(a.label,
+      () => { const acts = getVal('activities'); return acts ? acts[a.id] : undefined; },
+      (v) => {
+        const e = ensureEntry(state.date);
+        if (!e.activities) e.activities = {};
+        if (v === null) delete e.activities[a.id]; else e.activities[a.id] = v;
+        scheduleSave();
+      }));
+  }
+  act.appendChild(h('div', { style: 'margin-top:12px' },
+    textField('other_practice', 'Andet i dag', { chips: true, placeholder: 'fx åndedræt, terapi, varmepude …' })));
+  main.appendChild(act);
+
+  /* ── Sammenklappelige sektioner ── */
+  function section(title, open, build, headerBtn) {
+    const det = h('details', { class: 'card' });
+    if (open) det.setAttribute('open', '');
+    const sum = h('summary', null, h('span', null, title));
+    if (headerBtn) sum.appendChild(headerBtn);
+    sum.appendChild(h('span', { class: 'chev' }, '▶'));
+    det.appendChild(sum);
+    const inner = h('div', { class: 'inner' });
+    build(inner);
+    det.appendChild(inner);
+    return det;
+  }
+  function yesterdayBtn(keys) {
+    if (!getEntry(addDays(state.date, -1))) return null;
+    return h('button', { type: 'button', class: 'linkbtn', style: 'margin-left:auto;margin-right:8px', onclick: (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      copyFromYesterday(keys);
+    } }, 'Som i går');
+  }
+
+  main.appendChild(section('Smerte — detaljer', false, (el) => {
+    el.appendChild(textField('pain_location', 'Placering', { chips: true, placeholder: 'fx "nederst til venstre"' }));
+    el.appendChild(enumField('pain_worst_time', 'Værst på hvilket tidspunkt?', WORST_TIME_OPTIONS));
+    el.appendChild(textField('pain_duration', 'Varighed', { chips: true, placeholder: 'fx "ca. 3 timer", "hele dagen"' }));
+  }));
+
+  main.appendChild(section('Medicin', false, (el) => {
+    el.appendChild(textField('pain_killers', 'Smertestillende (navn & dosis)', { chips: true, placeholder: 'fx "Paracetamol 1 g × 2"' }));
+    el.appendChild(enumField('regular_meds_taken', 'Fast medicin taget?', MEDS_OPTIONS));
+    el.appendChild(textField('other_meds', 'Anden medicin / kosttilskud', { chips: true }));
+  }, yesterdayBtn(['pain_killers', 'regular_meds_taken', 'other_meds'])));
+
+  main.appendChild(section('Mad & drikke', false, (el) => {
+    el.appendChild(textField('breakfast', 'Morgenmad', { chips: true, placeholder: 'hvad du spiste — eller "sprunget over"' }));
+    el.appendChild(textField('lunch', 'Frokost', { chips: true }));
+    el.appendChild(textField('dinner', 'Aftensmad', { chips: true }));
+    el.appendChild(textField('snacks', 'Snacks / særlige fødevarer', { chips: true }));
+    el.appendChild(numberField('caffeine_cups', 'Koffein', { unit: 'kopper' }));
+    el.appendChild(numberField('alcohol_units', 'Alkohol', { unit: 'genstande' }));
+    el.appendChild(numberField('water_glasses', 'Vand', { unit: 'glas' }));
+  }, yesterdayBtn(['breakfast', 'lunch', 'dinner', 'snacks', 'caffeine_cups', 'alcohol_units', 'water_glasses'])));
+
+  main.appendChild(section('Dagens faktorer', false, (el) => {
+    el.appendChild(numberField('hours_sitting', 'Timer siddende', { step: 0.5, unit: 'timer' }));
+    el.appendChild(numberField('hours_around_people', 'Timer blandt mennesker', { step: 0.5, unit: 'timer' }));
+    el.appendChild(scaleField('social_stress', 'Social belastning', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(textField('bowel_bladder_notes', 'Mave & blære', { chips: true, placeholder: 'fx "hyppig trang", "forstoppet"' }));
+  }));
+
+  main.appendChild(section('Humør & sind — mere', false, (el) => {
+    el.appendChild(scaleField('motivation', 'Motivation', { dir: 'pos', hint: HINT_POS }));
+    el.appendChild(scaleField('anxiety', 'Angst / uro', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(scaleField('inner_tension', 'Indre spænding', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(scaleField('overthinking', 'Overtænkning', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(scaleField('hopelessness', 'Håbløshed', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(scaleField('irritability', 'Irritabilitet', { dir: 'neg', hint: HINT_NEG }));
+    el.appendChild(enumField('window_of_tolerance', 'Vindue for tolerance', WOT_OPTIONS,
+      { hint: 'Hvor var dit nervesystem mest i dag?' }));
+  }));
+
+  main.appendChild(section('Noter', false, (el) => {
+    el.appendChild(textField('what_helped', 'Hvad hjalp i dag?', { area: true, chips: true }));
+    el.appendChild(textField('other_notes', 'Andre noter', { area: true, placeholder: 'rejser, vejr, hormoner, begivenheder …' }));
+  }));
+
+  const saveBtn = h('button', { type: 'button', class: 'btn', onclick: () => {
+    clearTimeout(saveTimer);
+    pruneEntry(state.date);
+    persistEntries();
+    showSaved();
+    saveBtn.textContent = 'Gemt ✓';
+    setTimeout(() => { saveBtn.textContent = 'Gem dagens registrering'; }, 1500);
+  } }, 'Gem dagens registrering');
+  main.appendChild(saveBtn);
+  main.appendChild(h('p', { class: 'center-muted', style: 'padding-top:10px' },
+    'Alt gemmes automatisk, mens du skriver — knappen er blot en ekstra bekræftelse.'));
+}
+
+/* ═══════════════════ Visning: Historik ═══════════════════ */
+
+function renderHistory() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  if (!state.histMonth) state.histMonth = todayISO().slice(0, 7);
+  const [Y, M] = state.histMonth.split('-').map(Number);
+
+  const card = h('div', { class: 'card' });
+  const head = h('div', { class: 'cal-head' },
+    h('button', { type: 'button', 'aria-label': 'Forrige måned', onclick: () => {
+      const d = new Date(Y, M - 2, 1);
+      state.histMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      renderMain();
+    } }, '‹'),
+    h('span', { class: 'm' }, fmtMonth.format(new Date(Y, M - 1, 1))),
+    h('button', { type: 'button', 'aria-label': 'Næste måned', onclick: () => {
+      const d = new Date(Y, M, 1);
+      state.histMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      renderMain();
+    } }, '›'));
+  card.appendChild(head);
+
+  const grid = h('div', { class: 'cal-grid' });
+  for (const dow of ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn']) grid.appendChild(h('div', { class: 'dow' }, dow));
+  const first = new Date(Y, M - 1, 1);
+  const startOffset = (first.getDay() + 6) % 7;   /* mandag først */
+  const daysInMonth = new Date(Y, M, 0).getDate();
+  const today = todayISO();
+  for (let i = 0; i < startOffset; i++) grid.appendChild(h('div', { class: 'cal-cell empty' }));
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = Y + '-' + String(M).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const e = getEntry(iso);
+    const future = iso > today;
+    const cell = h('button', {
+      type: 'button',
+      class: 'cal-cell' + (future ? ' future' : '') + (iso === today ? ' today-c' : ''),
+      disabled: future ? '' : null,
+      onclick: () => { state.date = iso; state.tab = 'today'; render(); }
+    }, String(d));
+    if (e && isNum(e.pain_level)) {
+      cell.classList.add('has');
+      cell.style.background = painColor(e.pain_level);
+    } else if (e) {
+      cell.style.boxShadow = 'inset 0 0 0 2px var(--primary)';
+      cell.style.color = 'var(--primary)';
+    }
+    grid.appendChild(cell);
+  }
+  card.appendChild(grid);
+  card.appendChild(h('div', { class: 'legend', style: 'margin-top:10px; justify-content:center' },
+    h('span', null, h('i', { style: 'background:' + painColor(1) }), 'lav smerte'),
+    h('span', null, h('i', { style: 'background:' + painColor(5) }), 'middel'),
+    h('span', null, h('i', { style: 'background:' + painColor(9) }), 'høj'),
+    h('span', null, h('i', { style: 'border:2px solid var(--primary); background:transparent; width:6px; height:6px' }), 'uden smertescore')));
+  main.appendChild(card);
+
+  /* Liste over seneste registreringer */
+  const list = h('div', { class: 'card' });
+  list.appendChild(h('h2', null, 'Seneste registreringer'));
+  const dates = sortedDates().reverse().slice(0, 30);
+  if (!dates.length) {
+    list.appendChild(h('p', { class: 'center-muted' }, 'Ingen registreringer endnu.', h('br'), 'Din første dag venter under "I dag".'));
+  } else {
+    for (const iso of dates) {
+      const e = entries[iso];
+      const bits = [];
+      if (isNum(e.pain_level)) bits.push('Smerte ' + e.pain_level);
+      if (isNum(e.mood)) bits.push('Humør ' + e.mood);
+      if (isNum(e.sleep_hours)) bits.push('Søvn ' + fmtNum(e.sleep_hours) + ' t');
+      const item = h('button', { type: 'button', class: 'hist-item', onclick: () => {
+        state.date = iso; state.tab = 'today'; render();
+      } },
+        h('span', { class: 'dot', style: isNum(e.pain_level) ? 'background:' + painColor(e.pain_level) : '' }),
+        h('span', { class: 'd' },
+          h('span', { class: 't' }, ucfirst(fmtLong.format(isoToDate(iso)))),
+          h('span', { class: 's' }, bits.length ? bits.join(' · ') : 'Udfyldt uden scorer')),
+        h('span', { class: 'chev' }, '›'));
+      list.appendChild(item);
+    }
+  }
+  main.appendChild(list);
+}
+
+/* ═══════════════════ Indsigt: beregninger ═══════════════════ */
+
+function pearson(xs, ys) {
+  const n = xs.length;
+  if (n < 3) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, dx2 = 0, dy2 = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    num += dx * dy; dx2 += dx * dx; dy2 += dy * dy;
+  }
+  if (dx2 === 0 || dy2 === 0) return null;
+  return num / Math.sqrt(dx2 * dy2);
+}
+
+function computeInsights() {
+  const dates = sortedDates();
+  const out = { total: dates.length, trend: [], flare: null, practices: [], corr: [] };
+
+  /* Tendens */
+  for (const d of dates) {
+    const e = entries[d];
+    if (isNum(e.pain_level)) out.trend.push({ date: d, v: e.pain_level });
+  }
+
+  /* Svære vs. rolige dage */
+  const flareDays = dates.filter(d => isNum(entries[d].pain_level) && entries[d].pain_level >= 7);
+  const calmDays = dates.filter(d => isNum(entries[d].pain_level) && entries[d].pain_level <= 3);
+  if (flareDays.length >= 3 && calmDays.length >= 3) {
+    const rows = [];
+    for (const f of FACTORS) {
+      const fv = flareDays.map(d => entries[d][f.key]).filter(isNum);
+      const cv = calmDays.map(d => entries[d][f.key]).filter(isNum);
+      if (fv.length >= 3 && cv.length >= 3) {
+        const fa = fv.reduce((a, b) => a + b, 0) / fv.length;
+        const ca = cv.reduce((a, b) => a + b, 0) / cv.length;
+        rows.push({ label: f.label, flare: fa, calm: ca, nf: fv.length, nc: cv.length,
+          score: Math.abs(fa - ca) / f.range, range: f.range });
+      }
+    }
+    rows.sort((a, b) => b.score - a.score);
+    out.flare = { nFlare: flareDays.length, nCalm: calmDays.length, rows: rows.slice(0, 6) };
+  } else {
+    out.flare = { nFlare: flareDays.length, nCalm: calmDays.length, rows: null };
+  }
+
+  /* Hjalp en praksis? — næste dags smerte */
+  const practiceList = SPEC_PRACTICES.map(p => ({ label: p.label, get: (e) => e[p.key] }))
+    .concat(settings.activities.map(a => ({ label: a.label, get: (e) => e.activities && e.activities[a.id] })));
+  for (const p of practiceList) {
+    const withP = [], withoutP = [];
+    for (const d of dates) {
+      const next = getEntry(addDays(d, 1));
+      if (!next || !isNum(next.pain_level)) continue;
+      const a = p.get(entries[d]);
+      const did = a && (a.done || isNum(a.minutes) && a.minutes > 0);
+      (did ? withP : withoutP).push(next.pain_level);
+    }
+    if (withP.length >= 3 && withoutP.length >= 3) {
+      out.practices.push({
+        label: p.label,
+        withAvg: withP.reduce((x, y) => x + y, 0) / withP.length, nWith: withP.length,
+        withoutAvg: withoutP.reduce((x, y) => x + y, 0) / withoutP.length, nWithout: withoutP.length
+      });
+    }
+  }
+  out.practices.sort((a, b) => (a.withAvg - a.withoutAvg) - (b.withAvg - b.withoutAvg));
+
+  /* Korrelationer med smerte samme dag */
+  for (const f of FACTORS) {
+    const xs = [], ys = [];
+    for (const d of dates) {
+      const e = entries[d];
+      if (isNum(e.pain_level) && isNum(e[f.key])) { xs.push(e[f.key]); ys.push(e.pain_level); }
+    }
+    if (xs.length >= 8) {
+      const r = pearson(xs, ys);
+      if (r !== null) out.corr.push({ label: f.label, r, n: xs.length });
+    }
+  }
+  out.corr.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+  return out;
+}
+
+function trendChart(trend) {
+  if (trend.length < 2) return null;
+  const W = 320, H = 150, L = 24, R = 16, T = 8, B = 22;
+  const t0 = isoToDate(trend[0].date).getTime();
+  const t1 = isoToDate(trend[trend.length - 1].date).getTime();
+  const span = Math.max(t1 - t0, 1);
+  function x(d) { return L + (isoToDate(d).getTime() - t0) / span * (W - L - R); }
+  function y(v) { return T + (1 - v / 10) * (H - T - B); }
+  let g = '';
+  for (const gv of [0, 5, 10]) {
+    g += '<line x1="' + L + '" y1="' + y(gv) + '" x2="' + (W - R) + '" y2="' + y(gv) + '" style="stroke:var(--border)" stroke-width="1"/>' +
+         '<text x="' + (L - 6) + '" y="' + (y(gv) + 4) + '" text-anchor="end" font-size="10" style="fill:var(--muted)">' + gv + '</text>';
+  }
+  /* x-akse: op til 5 datomærker */
+  const nTicks = Math.min(5, trend.length);
+  for (let i = 0; i < nTicks; i++) {
+    const idx = Math.round(i * (trend.length - 1) / Math.max(nTicks - 1, 1));
+    const d = trend[idx].date;
+    g += '<text x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9.5" style="fill:var(--muted)">' +
+      fmtShort.format(isoToDate(d)).replace('.', '') + '</text>';
+  }
+  const line = trend.map((p, i) => (i ? 'L' : 'M') + x(p.date).toFixed(1) + ',' + y(p.v).toFixed(1)).join(' ');
+  const dots = trend.length <= 60
+    ? trend.map(p => '<circle cx="' + x(p.date).toFixed(1) + '" cy="' + y(p.v).toFixed(1) + '" r="2.6" fill="' + painColor(p.v) + '"/>').join('')
+    : '';
+  const holder = h('div', { html:
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto" role="img" aria-label="Smerte over tid">' +
+    g + '<path d="' + line + '" fill="none" style="stroke:var(--primary)" stroke-width="2" stroke-linejoin="round"/>' + dots + '</svg>' });
+  return holder.firstChild;
+}
+
+function renderInsights() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const ins = computeInsights();
+
+  if (ins.total < 5) {
+    main.appendChild(h('div', { class: 'card' },
+      h('h2', null, 'Indsigt'),
+      h('p', { class: 'center-muted' },
+        'Du har registreret ' + ins.total + (ins.total === 1 ? ' dag' : ' dage') + ' indtil videre.', h('br'),
+        'Efter ca. 5 dage begynder der at vise sig mønstre her — bliv ved, konsistens er det vigtigste. 💙')));
+    return;
+  }
+
+  main.appendChild(h('p', { class: 'hintline', style: 'margin:2px 2px 10px' },
+    'Alt her viser sammenhænge — ikke årsager. Antal dage (n) vises altid, så tynde data ikke overfortolkes.'));
+
+  /* Tendens */
+  const tcard = h('div', { class: 'card' });
+  tcard.appendChild(h('h2', null, 'Smerte over tid'));
+  const chart = trendChart(ins.trend);
+  if (chart) {
+    tcard.appendChild(chart);
+    tcard.appendChild(h('div', { class: 'hintline', style: 'margin-top:6px;margin-bottom:0' },
+      ins.trend.length + ' dage med smertescore'));
+  } else {
+    tcard.appendChild(h('p', { class: 'center-muted' }, 'Mindst 2 dage med smertescore kræves.'));
+  }
+  main.appendChild(tcard);
+
+  /* Svære vs rolige dage */
+  const fcard = h('div', { class: 'card' });
+  fcard.appendChild(h('h2', null, 'Svære dage vs. rolige dage'));
+  if (ins.flare.rows && ins.flare.rows.length) {
+    fcard.appendChild(h('div', { class: 'hintline' },
+      'De største forskelle mellem svære dage (smerte ≥ 7, n=' + ins.flare.nFlare +
+      ') og rolige dage (smerte ≤ 3, n=' + ins.flare.nCalm + '):'));
+    for (const r of ins.flare.rows) {
+      const maxV = Math.max(r.flare, r.calm, 0.001);
+      const row = h('div', { class: 'cmp-row' },
+        h('div', { class: 'lbl' }, h('span', null, r.label),
+          h('span', null, 'n=' + r.nf + ' / ' + r.nc)),
+        h('div', { class: 'bar-wrap' },
+          h('span', { class: 'tag' }, 'svære'),
+          h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: 'width:' + (r.flare / maxV * 100) + '%; background:#c4574e' })),
+          h('span', { class: 'bar-val' }, fmtNum(r.flare))),
+        h('div', { class: 'bar-wrap' },
+          h('span', { class: 'tag' }, 'rolige'),
+          h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: 'width:' + (r.calm / maxV * 100) + '%; background:#4a9d6e' })),
+          h('span', { class: 'bar-val' }, fmtNum(r.calm))));
+      fcard.appendChild(row);
+    }
+  } else {
+    fcard.appendChild(h('p', { class: 'center-muted' },
+      'Kræver mindst 3 svære dage (smerte ≥ 7) og 3 rolige dage (smerte ≤ 3).', h('br'),
+      'Lige nu: ' + ins.flare.nFlare + ' svære og ' + ins.flare.nCalm + ' rolige.'));
+  }
+  main.appendChild(fcard);
+
+  /* Hjalp en praksis? */
+  const pcard = h('div', { class: 'card' });
+  pcard.appendChild(h('h2', null, 'Hjalp en aktivitet?'));
+  pcard.appendChild(h('div', { class: 'hintline' }, 'Gennemsnitlig smerte dagen efter dage med aktiviteten — mod dage uden.'));
+  if (ins.practices.length) {
+    for (const p of ins.practices) {
+      const diff = p.withAvg - p.withoutAvg;
+      const better = diff < -0.2, worse = diff > 0.2;
+      const sign = better ? '▼ ' + fmtNum(-diff) : worse ? '▲ ' + fmtNum(diff) : '≈';
+      const col = better ? 'var(--good)' : worse ? 'var(--bad)' : 'var(--muted)';
+      pcard.appendChild(h('div', { class: 'corr-row' },
+        h('span', { class: 'n1' }, p.label),
+        h('span', { style: 'font-size:12.5px;color:var(--muted)' },
+          fmtNum(p.withAvg) + ' (n=' + p.nWith + ') mod ' + fmtNum(p.withoutAvg) + ' (n=' + p.nWithout + ')'),
+        h('span', { style: 'font-weight:700;font-size:13px;width:52px;text-align:right;color:' + col }, sign)));
+    }
+  } else {
+    pcard.appendChild(h('p', { class: 'center-muted' },
+      'Kræver mindst 3 dage med og 3 dage uden en aktivitet — hvor dagen efter også er registreret.'));
+  }
+  main.appendChild(pcard);
+
+  /* Korrelationer */
+  const ccard = h('details', { class: 'card' });
+  ccard.appendChild(h('summary', null, h('span', null, 'Mulige sammenhænge (korrelation)'), h('span', { class: 'chev' }, '▶')));
+  const cinner = h('div', { class: 'inner' });
+  if (ins.corr.length) {
+    cinner.appendChild(h('div', { class: 'hintline' },
+      'Sammenhæng mellem dagens smerte og hver faktor (Pearsons r, −1 til +1). Sorteret efter styrke.'));
+    for (const c of ins.corr) {
+      const w = Math.min(Math.abs(c.r), 1) * 50;
+      const left = c.r < 0 ? (50 - w) : 50;
+      const col = Math.abs(c.r) >= 0.5 ? (c.r > 0 ? '#c4574e' : '#4a9d6e') : 'var(--primary)';
+      cinner.appendChild(h('div', { class: 'corr-row' },
+        h('span', { class: 'n1' }, c.label),
+        h('div', { class: 'corr-track' },
+          h('div', { class: 'corr-fill', style: 'left:' + left + '%; width:' + w + '%; background:' + col })),
+        h('span', { class: 'corr-r' }, (c.r > 0 ? '+' : '') + c.r.toFixed(2)),
+        h('span', { class: 'n2' }, 'n=' + c.n)));
+    }
+  } else {
+    cinner.appendChild(h('p', { class: 'center-muted' }, 'Kræver mindst 8 dage, hvor både smerte og faktoren er udfyldt.'));
+  }
+  cinner.appendChild(h('p', { class: 'ins-note' },
+    'Muligt mønster — ikke bevis. Korrelation er ikke årsagssammenhæng, og få dage kan give tilfældige udsving.'));
+  ccard.appendChild(cinner);
+  main.appendChild(ccard);
+}
+
+/* ═══════════════════ Eksport ═══════════════════ */
+
+function csvEscape(v, sep) {
+  const s = String(v);
+  if (s.includes(sep) || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function download(filename, mime, content) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+}
+
+const ENUM_DA = {
+  regular_meds_taken: { yes: 'Ja', partly: 'Delvist', no: 'Nej' },
+  pain_worst_time: { morning: 'Morgen', midday: 'Middag', afternoon: 'Eftermiddag', evening: 'Aften', night: 'Nat' },
+  window_of_tolerance: { in_window: 'I vinduet', hyper: 'Hyper', hypo: 'Hypo', edge: 'På kanten' }
+};
+
+function exportExcelCSV() {
+  const sep = ';';
+  const numDa = (v) => isNum(v) ? String(v).replace('.', ',') : '';
+  const practCols = [];
+  for (const p of SPEC_PRACTICES) practCols.push({ label: p.label, get: (e) => e[p.key] });
+  for (const a of settings.activities) practCols.push({ label: a.label, get: (e) => e.activities && e.activities[a.id] });
+
+  const header = ['Dato', 'Smerteniveau (0-10)', 'Smertens placering', 'Værst på tidspunkt', 'Varighed',
+    'Smertestillende', 'Fast medicin taget', 'Anden medicin/kosttilskud',
+    'Morgenmad', 'Frokost', 'Aftensmad', 'Snacks', 'Koffein (kopper)', 'Alkohol (genstande)', 'Vand (glas)'];
+  for (const p of practCols) { header.push(p.label); header.push(p.label + ' (min)'); }
+  header.push('Anden praksis', 'Timer siddende', 'Timer blandt mennesker', 'Social belastning (0-10)',
+    'Søvn (timer)', 'Stressniveau (0-10)', 'Mave/blære',
+    'Humør (0-10)', 'Motivation (0-10)', 'Energi (0-10)', 'Angst (0-10)', 'Indre spænding (0-10)',
+    'Overtænkning (0-10)', 'Håbløshed (0-10)', 'Irritabilitet (0-10)', 'Vindue for tolerance',
+    'Hvad hjalp', 'Andre noter');
+
+  const lines = [header.map(x => csvEscape(x, sep)).join(sep)];
+  for (const d of sortedDates()) {
+    const e = entries[d];
+    const enumDa = (k) => e[k] ? (ENUM_DA[k][e[k]] || e[k]) : '';
+    const row = [d, numDa(e.pain_level), e.pain_location || '', enumDa('pain_worst_time'), e.pain_duration || '',
+      e.pain_killers || '', enumDa('regular_meds_taken'), e.other_meds || '',
+      e.breakfast || '', e.lunch || '', e.dinner || '', e.snacks || '',
+      numDa(e.caffeine_cups), numDa(e.alcohol_units), numDa(e.water_glasses)];
+    for (const p of practCols) {
+      const a = p.get(e);
+      row.push(a && a.done ? 'Ja' : '');
+      row.push(a && isNum(a.minutes) ? numDa(a.minutes) : '');
+    }
+    row.push(e.other_practice || '', numDa(e.hours_sitting), numDa(e.hours_around_people), numDa(e.social_stress),
+      numDa(e.sleep_hours), numDa(e.stress_level), e.bowel_bladder_notes || '',
+      numDa(e.mood), numDa(e.motivation), numDa(e.energy), numDa(e.anxiety), numDa(e.inner_tension),
+      numDa(e.overthinking), numDa(e.hopelessness), numDa(e.irritability), enumDa('window_of_tolerance'),
+      e.what_helped || '', e.other_notes || '');
+    lines.push(row.map(x => csvEscape(x, sep)).join(sep));
+  }
+  download('smertedagbog-' + todayISO() + '.csv', 'text/csv;charset=utf-8', '\uFEFF' + lines.join('\r\n'));
+}
+
+function exportRawCSV() {
+  const sep = ',';
+  const actIds = settings.activities.map(a => a.id);
+  const header = ['date', 'pain_level', 'pain_location', 'pain_worst_time', 'pain_duration',
+    'pain_killers', 'regular_meds_taken', 'other_meds',
+    'breakfast', 'lunch', 'dinner', 'snacks', 'caffeine_cups', 'alcohol_units', 'water_glasses',
+    'training', 'training_min', 'somatic_work', 'somatic_work_min', 'hypnosis', 'hypnosis_min'];
+  for (const id of actIds) { header.push('activity_' + id); header.push('activity_' + id + '_min'); }
+  header.push('other_practice', 'hours_sitting', 'hours_around_people', 'social_stress', 'sleep_hours',
+    'stress_level', 'bowel_bladder_notes', 'mood', 'motivation', 'energy', 'anxiety', 'inner_tension',
+    'overthinking', 'hopelessness', 'irritability', 'window_of_tolerance', 'what_helped', 'other_notes');
+  const lines = [header.join(sep)];
+  const nv = (v) => isNum(v) ? String(v) : '';
+  const sv = (v) => v ? csvEscape(v, sep) : '';
+  for (const d of sortedDates()) {
+    const e = entries[d];
+    const row = [d, nv(e.pain_level), sv(e.pain_location), e.pain_worst_time || '', sv(e.pain_duration),
+      sv(e.pain_killers), e.regular_meds_taken || '', sv(e.other_meds),
+      sv(e.breakfast), sv(e.lunch), sv(e.dinner), sv(e.snacks),
+      nv(e.caffeine_cups), nv(e.alcohol_units), nv(e.water_glasses)];
+    for (const p of SPEC_PRACTICES) {
+      const a = e[p.key];
+      row.push(a && a.done ? '1' : '0');
+      row.push(a && isNum(a.minutes) ? String(a.minutes) : '');
+    }
+    for (const id of actIds) {
+      const a = e.activities && e.activities[id];
+      row.push(a && a.done ? '1' : '0');
+      row.push(a && isNum(a.minutes) ? String(a.minutes) : '');
+    }
+    row.push(sv(e.other_practice), nv(e.hours_sitting), nv(e.hours_around_people), nv(e.social_stress),
+      nv(e.sleep_hours), nv(e.stress_level), sv(e.bowel_bladder_notes),
+      nv(e.mood), nv(e.motivation), nv(e.energy), nv(e.anxiety), nv(e.inner_tension),
+      nv(e.overthinking), nv(e.hopelessness), nv(e.irritability), e.window_of_tolerance || '',
+      sv(e.what_helped), sv(e.other_notes));
+    lines.push(row.join(sep));
+  }
+  download('smertedagbog-raw-' + todayISO() + '.csv', 'text/csv;charset=utf-8', lines.join('\n'));
+}
+
+function exportBackup() {
+  const data = { app: 'smertedagbog', version: 1, exported_at: new Date().toISOString(), settings, entries };
+  download('smertedagbog-backup-' + todayISO() + '.json', 'application/json', JSON.stringify(data, null, 2));
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data.entries !== 'object' || data.app !== 'smertedagbog') {
+        alert('Filen ligner ikke en sikkerhedskopi fra Smertedagbog.');
+        return;
+      }
+      const n = Object.keys(data.entries).length;
+      if (!confirm('Gendan sikkerhedskopi med ' + n + ' dage?\n\nDette ERSTATTER alle nuværende data i appen.')) return;
+      entries = data.entries;
+      if (data.settings) settings = Object.assign({}, DEFAULT_SETTINGS, data.settings, { safetySeen: true });
+      persistEntries(); persistSettings();
+      render();
+      alert('Gendannet: ' + n + ' dage.');
+    } catch (e) {
+      alert('Kunne ikke læse filen: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ═══════════════════ Påmindelse (.ics) ═══════════════════ */
+
+function buildICS(timeHHMM) {
+  const [hh, mm] = timeHHMM.split(':');
+  const today = todayISO().replace(/-/g, '');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Smertedagbog//DA', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VTIMEZONE', 'TZID:Europe/Copenhagen',
+    'BEGIN:DAYLIGHT', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST',
+    'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'END:DAYLIGHT',
+    'BEGIN:STANDARD', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET',
+    'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'END:STANDARD',
+    'END:VTIMEZONE',
+    'BEGIN:VEVENT',
+    'UID:smertedagbog-paamindelse-' + hh + mm + '@joachimsollested94.github.io',
+    'DTSTAMP:' + today + 'T000000Z',
+    'DTSTART;TZID=Europe/Copenhagen:' + today + 'T' + hh + mm + '00',
+    'DURATION:PT15M', 'RRULE:FREQ=DAILY',
+    'SUMMARY:Udfyld smertedagbogen',
+    'DESCRIPTION:Åbn dagbogen og registrér din dag: ' + APP_URL,
+    'URL:' + APP_URL,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Udfyld smertedagbogen', 'TRIGGER:PT0S', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
+}
+
+/* ═══════════════════ Visning: Indstillinger ═══════════════════ */
+
+function renderSettings() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  /* Påmindelse */
+  const rem = h('div', { class: 'card' });
+  rem.appendChild(h('h2', null, 'Daglig påmindelse'));
+  const timeInput = h('input', { type: 'time', value: settings.reminderTime || '20:00' });
+  timeInput.addEventListener('change', () => {
+    if (timeInput.value) { settings.reminderTime = timeInput.value; persistSettings(); }
+  });
+  rem.appendChild(h('div', { class: 'set-row' },
+    h('div', null, h('div', { class: 'sl' }, 'Tidspunkt'),
+      h('div', { class: 'sd' }, 'Hvornår vil du mindes om at udfylde dagbogen?')),
+    timeInput));
+  rem.appendChild(h('div', { style: 'margin-top:12px' },
+    h('button', { type: 'button', class: 'btn secondary', onclick: () => {
+      const t = settings.reminderTime || '20:00';
+      download('smertedagbog-paamindelse.ics', 'text/calendar;charset=utf-8', buildICS(t));
+    } }, 'Føj påmindelse til kalenderen (' + (settings.reminderTime || '20:00') + ')')));
+  rem.appendChild(h('p', { class: 'hintline', style: 'margin-top:10px;margin-bottom:0' },
+    'iPhone tillader ikke, at en webapp selv sender planlagte notifikationer. Kalenderaftalen giver dig i stedet en pålidelig daglig påmindelse med et link direkte til dagbogen. Åbn den hentede fil, og tryk "Tilføj alle".'));
+  main.appendChild(rem);
+
+  /* Aktiviteter */
+  const act = h('div', { class: 'card' });
+  act.appendChild(h('h2', null, 'Dine daglige aktiviteter'));
+  act.appendChild(h('div', { class: 'hintline' },
+    'Vises som tjekliste på dagens formular. Træning, somatisk arbejde og hypnose er faste og kan ikke slettes.'));
+  for (const a of settings.activities) {
+    const nameInput = h('input', { class: 'tinput', type: 'text', value: a.label });
+    nameInput.addEventListener('change', () => {
+      const v = nameInput.value.trim();
+      if (v) { a.label = v; persistSettings(); } else nameInput.value = a.label;
+    });
+    act.appendChild(h('div', { class: 'act-edit' },
+      nameInput,
+      h('button', { type: 'button', class: 'del', 'aria-label': 'Slet ' + a.label, onclick: () => {
+        if (!confirm('Fjern "' + a.label + '" fra tjeklisten?\n\nAllerede registrerede dage beholder deres data, men aktiviteten vises ikke længere i formularen eller i indsigterne.')) return;
+        settings.activities = settings.activities.filter(x => x.id !== a.id);
+        persistSettings(); renderMain();
+      } }, '✕')));
+  }
+  const addInput = h('input', { class: 'tinput', type: 'text', placeholder: 'Ny aktivitet, fx "Fysioterapi-øvelser"' });
+  act.appendChild(h('div', { class: 'act-edit' },
+    addInput,
+    h('button', { type: 'button', class: 'btn small secondary', onclick: () => {
+      const v = addInput.value.trim();
+      if (!v) return;
+      settings.activities.push({ id: 'a' + Date.now().toString(36), label: v });
+      persistSettings(); renderMain();
+    } }, 'Tilføj')));
+  main.appendChild(act);
+
+  /* Eksport */
+  const exp = h('div', { class: 'card' });
+  exp.appendChild(h('h2', null, 'Eksport & sikkerhedskopi'));
+  exp.appendChild(h('div', { class: 'hintline' }, 'Alt genereres direkte på din enhed — intet sendes nogen steder hen.'));
+  exp.appendChild(h('button', { type: 'button', class: 'btn secondary', style: 'margin-bottom:8px', onclick: exportExcelCSV },
+    'Eksportér til Excel (CSV) — til din læge'));
+  exp.appendChild(h('button', { type: 'button', class: 'btn secondary', style: 'margin-bottom:8px', onclick: exportRawCSV },
+    'Eksportér rå CSV (engelske feltnavne)'));
+  exp.appendChild(h('button', { type: 'button', class: 'btn secondary', style: 'margin-bottom:8px', onclick: exportBackup },
+    'Gem sikkerhedskopi (JSON)'));
+  const fileInput = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) importBackup(fileInput.files[0]); fileInput.value = ''; });
+  exp.appendChild(fileInput);
+  exp.appendChild(h('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click() },
+    'Gendan fra sikkerhedskopi'));
+  exp.appendChild(h('p', { class: 'hintline', style: 'margin-top:10px;margin-bottom:0' },
+    'Tip: Gem en sikkerhedskopi med jævne mellemrum — dine data findes kun på denne enhed.'));
+  main.appendChild(exp);
+
+  /* Hjemmeskærm-tip (kun når ikke installeret) */
+  if (!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
+    main.appendChild(h('div', { class: 'card' },
+      h('h2', null, 'Føj til hjemmeskærmen'),
+      h('p', { class: 'hintline', style: 'margin-bottom:0' },
+        'Åbn appen i Safari, tryk på Del-knappen (firkanten med pil op) og vælg "Føj til hjemmeskærm". Så virker dagbogen som en rigtig app — også uden internet.')));
+  }
+
+  /* Om & sikkerhed */
+  const about = h('div', { class: 'card' });
+  about.appendChild(h('h2', null, 'Om & sikkerhed'));
+  about.appendChild(h('div', { class: 'safety' }, SAFETY_TEXT));
+  about.appendChild(h('p', { class: 'hintline', style: 'margin-top:10px' },
+    'Version ' + APP_VERSION + ' · Alle data gemmes kun på denne enhed. Ingen konto, ingen sporing.'));
+  about.appendChild(h('button', { type: 'button', class: 'btn danger', onclick: () => {
+    if (!confirm('Slet ALLE data i dagbogen?\n\nDette kan ikke fortrydes. Overvej først at gemme en sikkerhedskopi.')) return;
+    if (!confirm('Er du helt sikker? Alle ' + entryCount() + ' registrerede dage slettes permanent.')) return;
+    entries = {};
+    persistEntries();
+    render();
+  } }, 'Slet alle data'));
+  main.appendChild(about);
+}
+
+/* ═══════════════════ Topbar, faner & routing ═══════════════════ */
+
+const TABS = [
+  { id: 'today', label: 'I dag', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' },
+  { id: 'history', label: 'Historik', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' },
+  { id: 'insights', label: 'Indsigt', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>' },
+  { id: 'settings', label: 'Indstillinger', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z"/></svg>' }
+];
+
+function renderTopbar() {
+  const bar = document.getElementById('topbar');
+  bar.innerHTML = '';
+  if (state.tab === 'today') {
+    const isToday = state.date === todayISO();
+    const left = h('div', null,
+      h('h1', null, isToday ? 'I dag' : ucfirst(fmtLong.format(isoToDate(state.date)))),
+      h('div', { class: 'sub' }, isToday
+        ? ucfirst(fmtLong.format(isoToDate(state.date)))
+        : 'Du redigerer en tidligere dag'));
+    const nav = h('div', { class: 'datenav' },
+      h('span', { class: 'saved-badge' }, 'Gemt ✓'),
+      h('button', { type: 'button', 'aria-label': 'Forrige dag', onclick: () => { state.date = addDays(state.date, -1); render(); } }, '‹'),
+      h('button', { type: 'button', 'aria-label': 'Næste dag', disabled: isToday ? '' : null,
+        onclick: () => { if (state.date < todayISO()) { state.date = addDays(state.date, 1); render(); } } }, '›'));
+    if (!isToday) nav.insertBefore(h('button', { type: 'button', class: 'linkbtn', style: 'width:auto;padding:0 6px', onclick: () => {
+      state.date = todayISO(); render();
+    } }, 'I dag'), nav.children[1]);
+    bar.appendChild(left);
+    bar.appendChild(nav);
+  } else {
+    const titles = { history: 'Historik', insights: 'Indsigt', settings: 'Indstillinger' };
+    bar.appendChild(h('div', null, h('h1', null, titles[state.tab] || 'Smertedagbog')));
+    bar.appendChild(h('span', { class: 'saved-badge' }, 'Gemt ✓'));
+  }
+}
+
+function renderTabbar() {
+  const nav = document.getElementById('tabbar');
+  nav.innerHTML = '';
+  for (const t of TABS) {
+    const btn = h('button', { type: 'button', class: state.tab === t.id ? 'sel' : '', 'aria-label': t.label, onclick: () => {
+      state.tab = t.id;
+      if (t.id === 'history') state.histMonth = null;
+      render();
+      window.scrollTo(0, 0);
+    } });
+    btn.innerHTML = t.icon;
+    btn.appendChild(h('span', null, t.label));
+    nav.appendChild(btn);
+  }
+}
+
+function renderMain() {
+  if (state.tab === 'today') renderToday();
+  else if (state.tab === 'history') renderHistory();
+  else if (state.tab === 'insights') renderInsights();
+  else renderSettings();
+}
+
+function render() {
+  renderTopbar();
+  renderTabbar();
+  renderMain();
+}
+
+/* ═══════════════════ Første start ═══════════════════ */
+
+function showSafetyModal() {
+  const root = document.getElementById('modal-root');
+  const back = h('div', { class: 'modal-back' },
+    h('div', { class: 'modal' },
+      h('h2', null, 'Velkommen til din smertedagbog 💙'),
+      h('p', null, 'Én hurtig registrering om dagen — så kan du og din læge se mønstre over tid. Alt er valgfrit; det vigtigste er at registrere lidt hver dag.'),
+      h('p', null, 'Alle data gemmes kun på din egen enhed. Ingen konto, intet i skyen.'),
+      h('div', { class: 'safety' }, SAFETY_TEXT),
+      h('button', { type: 'button', class: 'btn', onclick: () => {
+        settings.safetySeen = true;
+        persistSettings();
+        root.innerHTML = '';
+      } }, 'Forstået — lad os begynde')));
+  root.appendChild(back);
+}
+
+loadAll();
+render();
+if (!settings.safetySeen) showSafetyModal();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* offline-cache er en bonus, ikke et krav */ });
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Daily Calm</title>
+<meta name="description" content="Rolig daglig rutine: morgenflow, dagbog, vejrtrækning og blide påmindelser. Alle data gemmes kun på din egen enhed.">
+<meta name="theme-color" content="#0f1f22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Calm">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  --bg: #0f1f22;
+  --card: #16292d;
+  --card-soft: #1d3438;
+  --text: #eef4f2;
+  --muted: #93aaa6;
+  --teal: #7fd1c4;
+  --teal-deep: #57b3a4;
+  --teal-soft: rgba(127, 209, 196, 0.13);
+  --sand: #e7c79a;
+  --sand-soft: rgba(231, 199, 154, 0.14);
+  --border: rgba(238, 244, 242, 0.09);
+  --danger: #d98a80;
+  --btn-text: #0f1f22;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  --radius: 16px;
+}
+:root[data-theme="light"] {
+  --bg: #f3f6f5;
+  --card: #ffffff;
+  --card-soft: #e9f0ee;
+  --text: #1b2b28;
+  --muted: #5f7571;
+  --teal: #2e7d70;
+  --teal-deep: #25645a;
+  --teal-soft: rgba(46, 125, 112, 0.11);
+  --sand: #a97e3f;
+  --sand-soft: rgba(169, 126, 63, 0.12);
+  --border: rgba(27, 43, 40, 0.10);
+  --danger: #b3564c;
+  --btn-text: #ffffff;
+  --shadow: 0 1px 5px rgba(27, 43, 40, 0.08);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; overscroll-behavior-y: none;
+  transition: background 0.3s;
+}
+button { font-family: inherit; color: inherit; background: none; border: none; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+input, textarea { font-family: inherit; font-size: 16px; color: var(--text); }
+
+#app { max-width: 560px; margin: 0 auto; padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+main { padding: 8px 16px 20px; }
+
+#topbar {
+  padding: calc(14px + env(safe-area-inset-top)) 18px 6px;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+#topbar h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.2px; }
+#topbar .sub { font-size: 13px; color: var(--muted); }
+
+.card {
+  background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+  box-shadow: var(--shadow); padding: 18px; margin-bottom: 12px;
+}
+.card h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.soft { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+.btn {
+  display: block; width: 100%; padding: 15px; border-radius: 14px;
+  background: var(--teal); color: var(--btn-text); font-size: 16.5px; font-weight: 700;
+  text-align: center;
+}
+.btn:active { opacity: 0.85; }
+.btn.ghost { background: var(--teal-soft); color: var(--teal); }
+.btn.sandy { background: var(--sand-soft); color: var(--sand); }
+.btn.small { display: inline-block; width: auto; padding: 9px 15px; font-size: 14px; border-radius: 11px; }
+.btn.quiet { background: none; color: var(--muted); font-weight: 600; font-size: 14.5px; }
+.btnrow { display: flex; gap: 9px; }
+.btnrow .btn { flex: 1; }
+
+/* checklist rows */
+.chk { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 13px 2px; min-height: 50px; }
+.chk + .chk { border-top: 1px solid var(--border); }
+.chk .box {
+  width: 27px; height: 27px; border-radius: 9px; border: 2px solid var(--muted);
+  flex: none; display: flex; align-items: center; justify-content: center;
+  color: transparent; font-size: 15px; transition: all 0.15s;
+}
+.chk.on .box { background: var(--teal); border-color: var(--teal); color: var(--btn-text); }
+.chk .txt { flex: 1; font-size: 15px; font-weight: 500; line-height: 1.35; }
+.chk.on .txt { color: var(--muted); }
+.chk .time { font-size: 13px; color: var(--sand); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* flow */
+.dots { display: flex; gap: 8px; justify-content: center; padding: 4px 0 14px; }
+.dots i { width: 9px; height: 9px; border-radius: 5px; background: var(--card-soft); border: 1px solid var(--border); }
+.dots i.done { background: var(--teal); border-color: var(--teal); }
+.dots i.cur { background: var(--sand); border-color: var(--sand); transform: scale(1.25); }
+.flowhead { display: flex; align-items: center; justify-content: space-between; padding: calc(10px + env(safe-area-inset-top)) 16px 0; }
+.flowhead .x { font-size: 15px; color: var(--muted); font-weight: 600; padding: 8px; }
+.blockcard { text-align: center; padding-top: 6px; }
+.blockcard .emoji { font-size: 44px; display: block; margin-bottom: 8px; }
+.blockcard h2 { font-size: 20px; margin-bottom: 4px; }
+.blockcard .lead { font-size: 14px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.blockcard .list { text-align: left; margin-bottom: 14px; }
+.skipnote { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+/* journal */
+.prompt-title { font-size: 18.5px; font-weight: 700; line-height: 1.4; margin-bottom: 6px; }
+.prompt-hint { font-size: 13.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+textarea.jrnl {
+  width: 100%; min-height: 120px; padding: 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--card-soft);
+  outline: none; resize: vertical; line-height: 1.5;
+}
+textarea.jrnl:focus { border-color: var(--teal); }
+.support {
+  margin-top: 12px; background: var(--sand-soft); border: 1px solid var(--sand);
+  border-radius: 13px; padding: 13px 15px; font-size: 14px; line-height: 1.55; text-align: left;
+}
+.jname { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; margin-bottom: 12px; }
+
+/* pacer */
+.pacer-back { position: fixed; inset: 0; z-index: 120; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+.pacer-circle-wrap { width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; margin: 26px 0; }
+.pacer-circle {
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(127,209,196,0.55), rgba(127,209,196,0.16) 68%);
+  border: 2px solid var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  transform: scale(0.6); box-shadow: 0 0 60px rgba(127, 209, 196, 0.18);
+}
+.pacer-circle .core { width: 26px; height: 26px; border-radius: 13px; background: var(--sand); }
+.pacer-phase { font-size: 26px; font-weight: 700; min-height: 36px; }
+.pacer-count { font-size: 15px; color: var(--muted); margin-top: 6px; min-height: 22px; font-variant-numeric: tabular-nums; }
+.pacer-opts { display: flex; gap: 8px; margin: 14px 0 6px; flex-wrap: wrap; justify-content: center; }
+.pacer-opts button { padding: 9px 15px; border-radius: 999px; background: var(--card-soft); color: var(--muted); font-weight: 600; font-size: 14px; border: 1px solid var(--border); }
+.pacer-opts button.sel { background: var(--teal-soft); color: var(--teal); border-color: var(--teal); }
+.pacer-title { font-size: 19px; font-weight: 700; }
+.pacer-sub { font-size: 13.5px; color: var(--muted); margin-top: 4px; text-align: center; line-height: 1.5; }
+
+/* progression */
+.bignum { font-size: 42px; font-weight: 800; color: var(--teal); line-height: 1.1; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-head .m { font-size: 15px; font-weight: 700; }
+.cal-head button { width: 38px; height: 38px; border-radius: 11px; font-size: 18px; color: var(--teal); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid .dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 3px 0; }
+.cal-cell {
+  aspect-ratio: 1; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; background: var(--card-soft); color: var(--muted); border: 1px solid transparent;
+}
+.cal-cell.blank { background: transparent; }
+.cal-cell.some { background: var(--teal-soft); color: var(--teal); border-color: var(--teal); }
+.cal-cell.full { background: var(--teal); color: var(--btn-text); border-color: var(--teal); }
+.cal-cell.today-c { outline: 2px solid var(--sand); outline-offset: 1px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 5px; margin-right: 5px; }
+.wbar { display: flex; align-items: flex-end; gap: 7px; height: 96px; padding-top: 8px; }
+.wbar .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.wbar .bar { width: 100%; max-width: 34px; border-radius: 7px 7px 3px 3px; background: var(--teal); opacity: 0.9; min-height: 3px; }
+.wbar .lbl { font-size: 10px; color: var(--muted); }
+.useline { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.useline .n { flex: 1; font-size: 14px; font-weight: 600; }
+.useline .track { flex: 2; height: 9px; border-radius: 5px; background: var(--card-soft); overflow: hidden; }
+.useline .fill { height: 100%; border-radius: 5px; background: var(--teal); }
+.useline .v { width: 30px; text-align: right; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* journal history */
+.jitem { width: 100%; text-align: left; padding: 13px 2px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.jitem:last-child { border-bottom: none; }
+.jitem .d { flex: 1; min-width: 0; }
+.jitem .t { display: block; font-size: 14.5px; font-weight: 700; }
+.jitem .s { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jitem .chev { color: var(--muted); }
+pre.jfull { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line-height: 1.6; background: var(--card-soft); border-radius: 13px; padding: 15px; margin-bottom: 12px; }
+
+/* settings */
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: none; }
+.set-row .sl { font-size: 15px; font-weight: 600; }
+.set-row .sd { font-size: 12.5px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+.set-row input[type="time"] { border: 1px solid var(--border); background: var(--card-soft); border-radius: 10px; padding: 8px 10px; color: var(--text); }
+.tinput { width: 100%; padding: 12px 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-soft); outline: none; }
+.tinput:focus { border-color: var(--teal); }
+textarea.tinput { resize: vertical; line-height: 1.6; }
+.seg { display: flex; gap: 6px; }
+.seg button { flex: 1; padding: 10px; border-radius: 11px; background: var(--card-soft); color: var(--muted); font-weight: 600; font-size: 14px; border: 1px solid var(--border); }
+.seg button.sel { background: var(--teal-soft); color: var(--teal); border-color: var(--teal); }
+/* toggle */
+.tgl { width: 50px; height: 30px; border-radius: 16px; background: var(--card-soft); border: 1px solid var(--border); position: relative; flex: none; transition: background 0.2s; }
+.tgl::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 11px; background: var(--muted); transition: all 0.2s; }
+.tgl.on { background: var(--teal); border-color: var(--teal); }
+.tgl.on::after { left: 23px; background: var(--btn-text); }
+
+/* toast */
+#toast {
+  position: fixed; left: 50%; bottom: calc(128px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(8px);
+  background: var(--card); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow);
+  padding: 11px 18px; border-radius: 999px; font-size: 14.5px; font-weight: 600;
+  opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 200; max-width: 86vw; text-align: center;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* crisis footer + tabbar */
+#crisis {
+  position: fixed; bottom: calc(62px + env(safe-area-inset-bottom)); left: 0; right: 0; z-index: 40;
+  max-width: 560px; margin: 0 auto; text-align: center;
+  font-size: 11.5px; color: var(--muted); padding: 6px 14px 5px;
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
+}
+#crisis b { color: var(--sand); font-weight: 700; }
+#tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  background: var(--card); border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around;
+  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  max-width: 560px; margin: 0 auto;
+}
+#tabbar button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 4px 0; }
+#tabbar button.sel { color: var(--teal); }
+#tabbar svg { width: 23px; height: 23px; }
+body.in-flow #tabbar { display: none; }
+body.in-flow #crisis { bottom: env(safe-area-inset-bottom); }
+body.in-flow #app { padding-bottom: calc(46px + env(safe-area-inset-bottom)); }
+
+/* modal */
+.modal-back { position: fixed; inset: 0; background: rgba(5, 12, 14, 0.65); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 22px; }
+.modal { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; max-width: 430px; width: 100%; max-height: 84vh; overflow-y: auto; }
+.modal h2 { font-size: 18px; margin-bottom: 10px; }
+.modal p { font-size: 14.5px; line-height: 1.6; margin-bottom: 10px; }
+.center-muted { text-align: center; color: var(--muted); font-size: 14px; padding: 16px 8px; line-height: 1.55; }
+.chipwrap { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.chip { font-size: 12.5px; padding: 6px 11px; border-radius: 999px; background: var(--teal-soft); color: var(--teal); font-weight: 600; }
+.chip.off { background: var(--card-soft); color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar"></header>
+  <main id="main"></main>
+</div>
+<div id="crisis">Har du det svært? Ring <b>112</b> eller <b>Livslinien 70 201 201</b></div>
+<nav id="tabbar"></nav>
+<div id="toast"></div>
+<div id="modal-root"></div>
+<div id="pacer-root"></div>
+
+<script>
+'use strict';
+
+/* ═══════════ Konstanter ═══════════ */
+
+const DAYS_KEY = 'dailycalm.days.v1';
+const JOURNAL_KEY = 'dailycalm.journal.v1';
+const SETTINGS_KEY = 'dailycalm.settings.v1';
+const APP_VERSION = '1.0.0';
+const APP_URL = 'https://joachimsollested94.github.io/joachimsoellested/rutine/';
+
+const DEFAULT_EXERCISES = {
+  baekken: [
+    'Childs pose — 5 min',
+    'Diafragmatisk vejrtrækning — 5 min (ind 4 sek / ud 6 sek)',
+    'Dynamisk childs pose — 10',
+    'Dynamisk bred childs pose — 10',
+    'Kegel — 10 × 3, 3 sek pres på udånding',
+    'Transverse — 5',
+    'Bird dog — 5 hver side'
+  ],
+  skulder: [
+    'Rotator cuff — 2 × 10–15',
+    'Stabilitet over hovedet — 2 ×',
+    'Rotator cuff siddende — 2 × 5–15',
+    'Rotator cuff liggende — 2 × 15–20',
+    'Nakke — 3 × 10–15'
+  ]
+};
+
+const DEFAULT_SETTINGS = {
+  name: 'Champion',
+  theme: 'dark',
+  reminders: [
+    { id: 'morgen', label: 'Morgenrutine', time: '08:00', enabled: true, text: 'Din morgenrutine er klar, når du er 🌿' },
+    { id: 'mad', label: 'Lave mad', time: '18:00', enabled: true, text: 'Lave mad 🍲' },
+    { id: 'nurosym', label: 'Nurosym + medicin', time: '19:00', enabled: true, text: 'Nurosym + medicin' },
+    { id: 'fiskeolie', label: 'Fiskeolie + vejrtrækning', time: '20:00', enabled: true, text: 'Fiskeolie — og måske 5 min rolig vejrtrækning?' },
+    { id: 'conrad', label: 'Skifte Conrad + godnat', time: '21:30', enabled: true, text: 'Skifte Conrad — og så godnat 💛' }
+  ],
+  exercises: JSON.parse(JSON.stringify(DEFAULT_EXERCISES)),
+  introSeen: false
+};
+
+const BLOCK_DEFS = [
+  { key: 'straks', title: 'Med det samme', emoji: '💧', lead: 'Stille og roligt — ét ad gangen.',
+    items: () => ['Drik vand med kreatin', 'Tag medicin', 'Brug Nurosym'] },
+  { key: 'dagbog', title: 'Dagbog — Regulér & Beløn', emoji: '📖', journal: true },
+  { key: 'kosttilskud', title: 'Kosttilskud', emoji: '🌱', lead: 'Bare det her ene.',
+    items: () => ['Tag kosttilskud'] },
+  { key: 'baekken', title: 'Bækkenøvelser', emoji: '🧘', lead: 'Kroppen først. Tag den tid, den skal have.',
+    items: () => settings.exercises.baekken, breath: true },
+  { key: 'skulder', title: 'Skulderøvelser', emoji: '🤸', lead: 'Sidste blok — så er du igennem.',
+    items: () => settings.exercises.skulder }
+];
+
+const JOURNAL_PROMPTS = [
+  { key: 'q1', title: 'Lige nu er jeg tryg, fordi…', hint: 'Noget virkeligt og til stede lige nu — fx "døren er låst", "kaffen er varm", "jeg kan høre regnen".' },
+  { key: 'q2', title: 'Én venlig ting jeg vil sige til mig selv i dag', hint: 'Sig det, som du ville sige det til en god ven.' },
+  { key: 'q3', title: 'Én ting jeg kan glæde mig til eller som betyder noget i dag', hint: 'Helt småt tæller — en kop kaffe, et stykke musik, frisk luft.' },
+  { key: 'q4', title: 'Ét lille trygt skridt mod et menneske i dag', hint: 'Meget lille er perfekt — et nik, et "tak", en besked. Og det er helt fint at springe over i dag.', optional: true }
+];
+
+const EVENING_ITEMS = [
+  { key: 'mad', time: '18:00', label: 'Lave mad' },
+  { key: 'nurosym', time: '19:00', label: 'Nurosym + medicin' },
+  { key: 'fiskeolie', time: '20:00', label: 'Fiskeolie', breath: true },
+  { key: 'conrad', time: '21:30', label: 'Skifte Conrad' }
+];
+
+const CRISIS_PHRASES = ['selvmord', 'selvskade', 'skade mig selv', 'skader mig selv', 'tage mit liv',
+  'tage mit eget liv', 'vil ikke leve', 'gider ikke leve', 'ønsker jeg var død', 'vil dø',
+  'gøre en ende på det', 'ende det hele'];
+
+/* ═══════════ Hjælpere ═══════════ */
+
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c === null || c === undefined || c === false) continue;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function addDays(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+function isoToDate(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+const fmtLong = new Intl.DateTimeFormat('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const fmtDay = new Intl.DateTimeFormat('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtMonth = new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' });
+function ucfirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 2100);
+}
+
+/* ═══════════ Lager ═══════════ */
+
+let days = {}, journal = {}, settings = {};
+
+function loadAll() {
+  try { days = JSON.parse(localStorage.getItem(DAYS_KEY)) || {}; } catch (e) { days = {}; }
+  try { journal = JSON.parse(localStorage.getItem(JOURNAL_KEY)) || {}; } catch (e) { journal = {}; }
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { s = {}; }
+  settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s);
+  if (!Array.isArray(settings.reminders) || settings.reminders.length !== 5) settings.reminders = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.reminders));
+  if (!settings.exercises || !Array.isArray(settings.exercises.baekken)) settings.exercises = JSON.parse(JSON.stringify(DEFAULT_EXERCISES));
+}
+function saveDays() { localStorage.setItem(DAYS_KEY, JSON.stringify(days)); }
+function saveJournal() { localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal)); }
+function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+function dayRec(iso) {
+  if (!days[iso]) days[iso] = { blocks: {}, evening: {}, progress: 0, flowDone: false, breathMin: 0 };
+  return days[iso];
+}
+function dayActive(rec) {
+  if (!rec) return false;
+  return Object.values(rec.blocks || {}).some(Boolean) || Object.values(rec.evening || {}).some(Boolean) ||
+    (rec.breathMin || 0) > 0 || rec.flowDone || (rec.progress || 0) > 0;
+}
+function dayHasJournal(iso) {
+  const j = journal[iso];
+  return !!(j && (j.q1 || j.q2 || j.q3 || j.q4));
+}
+function isDayActive(iso) { return dayActive(days[iso]) || dayHasJournal(iso); }
+function totalActiveDays() {
+  const set = new Set(Object.keys(days).filter(d => dayActive(days[d])));
+  for (const d of Object.keys(journal)) if (dayHasJournal(d)) set.add(d);
+  return set.size;
+}
+
+/* ═══════════ Tema ═══════════ */
+
+function applyTheme() {
+  let t = settings.theme || 'dark';
+  if (t === 'auto') t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  const mc = document.querySelector('meta[name="theme-color"]');
+  if (mc) mc.setAttribute('content', t === 'light' ? '#f3f6f5' : '#0f1f22');
+}
+
+/* ═══════════ App-tilstand ═══════════ */
+
+const state = {
+  tab: 'home',
+  flow: null,           /* { block: 0-4, jstep: 0-3, journalOnly: bool } */
+  histMonth: null,
+  viewEntry: null       /* iso for åben dagbogspost */
+};
+
+/* ═══════════ Dagbog: tekst & krise-støtte ═══════════ */
+
+function compiledJournal(iso) {
+  const j = journal[iso] || {};
+  const L = ['Regulér & Beløn — ' + fmtLong.format(isoToDate(iso)), ''];
+  JOURNAL_PROMPTS.forEach((p, i) => {
+    L.push((i + 1) + ') ' + p.title);
+    const a = (j[p.key] || '').trim();
+    L.push(a ? a : (p.optional ? 'Sprunget over — helt okay.' : '—'));
+    L.push('');
+  });
+  return L.join('\n').trim();
+}
+function crisisCheck(iso) {
+  const j = journal[iso] || {};
+  const all = [j.q1, j.q2, j.q3, j.q4].join(' ').toLowerCase();
+  return CRISIS_PHRASES.some(p => all.includes(p));
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast('Kopieret ✓'); }
+  catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Kopieret ✓'); } catch (e2) { toast('Kunne ikke kopiere'); }
+    document.body.removeChild(ta);
+  }
+}
+async function shareText(text) {
+  if (navigator.share) { try { await navigator.share({ text }); } catch (e) { /* annulleret */ } }
+  else copyText(text);
+}
+function download(filename, mime, content) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+}
+
+/* ═══════════ Vejrtræknings-pacer ═══════════ */
+
+const pacer = { running: false, timer: null, minutes: 2, hold: false, ctx: null };
+
+function openPacer(minutes, ctx) {
+  pacer.minutes = minutes || 2;
+  pacer.hold = false;
+  pacer.ctx = ctx || null;
+  renderPacer('idle');
+}
+function closePacer() {
+  stopPacer();
+  document.getElementById('pacer-root').innerHTML = '';
+}
+function stopPacer() {
+  pacer.running = false;
+  if (pacer.timer) { clearInterval(pacer.timer); pacer.timer = null; }
+}
+function renderPacer(mode) {
+  const root = document.getElementById('pacer-root');
+  root.innerHTML = '';
+  const circle = h('div', { class: 'pacer-circle' }, h('div', { class: 'core' }));
+  const phaseEl = h('div', { class: 'pacer-phase' }, mode === 'idle' ? 'Klar, når du er' : '');
+  const countEl = h('div', { class: 'pacer-count' }, mode === 'idle' ? 'Ind 4 sek · ud 6 sek' : '');
+
+  const wrap = h('div', { class: 'pacer-back' },
+    h('div', { class: 'pacer-title' }, 'Rolig vejrtrækning'),
+    h('div', { class: 'pacer-sub' }, 'Blød mave-vejrtrækning. Udåndingen er længst — det beroliger nervesystemet.'),
+    h('div', { class: 'pacer-circle-wrap' }, circle),
+    phaseEl, countEl);
+
+  if (mode === 'idle') {
+    const opts = h('div', { class: 'pacer-opts' });
+    for (const m of [2, 5]) {
+      const b = h('button', { type: 'button', class: pacer.minutes === m ? 'sel' : '', onclick: () => { pacer.minutes = m; renderPacer('idle'); } }, m + ' min');
+      opts.appendChild(b);
+    }
+    const holdBtn = h('button', { type: 'button', class: pacer.hold ? 'sel' : '', onclick: () => { pacer.hold = !pacer.hold; renderPacer('idle'); } }, '2 sek pause');
+    opts.appendChild(holdBtn);
+    wrap.appendChild(opts);
+    wrap.appendChild(h('div', { style: 'width:100%;max-width:340px;margin-top:10px' },
+      h('button', { type: 'button', class: 'btn', onclick: () => startPacer(circle, phaseEl, countEl, wrap) }, 'Begynd'),
+      h('button', { type: 'button', class: 'btn quiet', style: 'margin-top:6px', onclick: closePacer }, 'Luk')));
+  }
+  root.appendChild(wrap);
+}
+function startPacer(circle, phaseEl, countEl, wrap) {
+  /* fjern idle-knapper */
+  const extras = wrap.querySelectorAll('.pacer-opts, div[style*="max-width:340px"]');
+  extras.forEach(x => x.remove());
+  const stopBtn = h('div', { style: 'width:100%;max-width:340px;margin-top:14px' },
+    h('button', { type: 'button', class: 'btn ghost', onclick: () => { finishPacer(wrap, phaseEl, countEl, circle, true); } }, 'Stop'));
+  wrap.appendChild(stopBtn);
+
+  const phases = pacer.hold
+    ? [{ n: 'Ind', d: 4, s: 1 }, { n: 'Hold', d: 2, s: 1 }, { n: 'Ud', d: 6, s: 0.6 }]
+    : [{ n: 'Ind', d: 4, s: 1 }, { n: 'Ud', d: 6, s: 0.6 }];
+  const total = pacer.minutes * 60 * 1000;
+  const t0 = Date.now();
+  let pi = 0, pStart = t0;
+  pacer.running = true;
+  circle.style.transition = 'transform 4s ease-in-out';
+  circle.style.transform = 'scale(1)';
+  phaseEl.textContent = 'Ind';
+
+  pacer.timer = setInterval(() => {
+    if (!pacer.running) return;
+    const now = Date.now();
+    const el = now - pStart;
+    const ph = phases[pi];
+    if (el >= ph.d * 1000) {
+      pi = (pi + 1) % phases.length;
+      pStart = now;
+      const np = phases[pi];
+      circle.style.transition = 'transform ' + np.d + 's ease-in-out';
+      circle.style.transform = 'scale(' + np.s + ')';
+      phaseEl.textContent = np.n;
+    }
+    const phLeft = Math.max(0, Math.ceil((phases[pi].d * 1000 - (now - pStart)) / 1000));
+    const totLeft = Math.max(0, total - (now - t0));
+    const mm = Math.floor(totLeft / 60000), ss = Math.floor((totLeft % 60000) / 1000);
+    countEl.textContent = phaseEl.textContent + '… ' + phLeft + '  ·  ' + mm + ':' + String(ss).padStart(2, '0') + ' tilbage';
+    if (totLeft <= 0) finishPacer(wrap, phaseEl, countEl, circle, false);
+  }, 200);
+}
+function finishPacer(wrap, phaseEl, countEl, circle, stopped) {
+  const ranMs = pacer.running ? null : null;
+  stopPacer();
+  const rec = dayRec(todayISO());
+  rec.breathMin = (rec.breathMin || 0) + (stopped ? 0 : pacer.minutes);
+  if (!stopped) saveDays();
+  phaseEl.textContent = stopped ? 'Fint — det du nåede, tæller' : 'Færdigt 🌿';
+  countEl.textContent = stopped ? '' : 'Mærk lige efter et øjeblik.';
+  circle.style.transition = 'transform 3s ease-in-out';
+  circle.style.transform = 'scale(0.75)';
+  const old = wrap.querySelector('div[style*="max-width:340px"]');
+  if (old) old.remove();
+  wrap.appendChild(h('div', { style: 'width:100%;max-width:340px;margin-top:14px' },
+    h('button', { type: 'button', class: 'btn', onclick: () => { closePacer(); render(); } }, 'Luk')));
+}
+
+/* ═══════════ Morgenflow ═══════════ */
+
+function startFlow(journalOnly) {
+  const rec = dayRec(todayISO());
+  if (journalOnly) state.flow = { block: 1, jstep: 0, journalOnly: true };
+  else state.flow = { block: Math.min(rec.progress || 0, 4), jstep: 0, journalOnly: false };
+  saveDays();
+  render();
+  window.scrollTo(0, 0);
+}
+function exitFlow() {
+  state.flow = null;
+  render();
+  window.scrollTo(0, 0);
+}
+function advanceFlow(markDone) {
+  const f = state.flow;
+  const rec = dayRec(todayISO());
+  const def = BLOCK_DEFS[f.block];
+  if (markDone) rec.blocks[def.key] = true;
+  if (f.journalOnly) { saveDays(); exitFlow(); return; }
+  if (f.block >= 4) {
+    rec.progress = 5;
+    rec.flowDone = true;
+    saveDays();
+    f.block = 5; /* færdig-skærm */
+    render(); window.scrollTo(0, 0);
+    return;
+  }
+  f.block += 1;
+  f.jstep = 0;
+  rec.progress = Math.max(rec.progress || 0, f.block);
+  saveDays();
+  render(); window.scrollTo(0, 0);
+}
+
+function renderFlow() {
+  const main = document.getElementById('main');
+  const top = document.getElementById('topbar');
+  top.innerHTML = '';
+  main.innerHTML = '';
+  const f = state.flow;
+  const iso = todayISO();
+  const rec = dayRec(iso);
+
+  /* luk-knap + prikker */
+  const head = h('div', { class: 'flowhead' },
+    h('div', { style: 'font-size:15px;font-weight:700' }, f.journalOnly ? 'Dagbog' : 'Morgenrutine'),
+    h('button', { type: 'button', class: 'x', onclick: () => { saveJournal(); saveDays(); exitFlow(); } }, 'Gem & luk ✕'));
+  top.appendChild(head);
+  if (!f.journalOnly) {
+    const dots = h('div', { class: 'dots' });
+    for (let i = 0; i < 5; i++) {
+      const d = h('i');
+      if (i < f.block || rec.blocks[BLOCK_DEFS[i] && BLOCK_DEFS[i].key]) d.classList.add('done');
+      if (i === f.block) d.classList.add('cur');
+      dots.appendChild(d);
+    }
+    top.appendChild(dots);
+  }
+
+  /* færdig-skærm */
+  if (f.block >= 5) {
+    const doneKeys = Object.keys(rec.blocks).filter(k => rec.blocks[k]);
+    const card = h('div', { class: 'card blockcard' },
+      h('span', { class: 'emoji' }, '🌿'),
+      h('h2', null, 'Godt gået, ' + (settings.name || '') + '.'),
+      h('p', { class: 'lead' }, 'Rutinen er færdig. Dagen er i gang — i dit tempo.'),
+      h('div', { class: 'chipwrap', style: 'justify-content:center' },
+        BLOCK_DEFS.map(b => h('span', { class: 'chip' + (rec.blocks[b.key] ? '' : ' off') },
+          (rec.blocks[b.key] ? '✓ ' : '· ') + b.title.split(' — ')[0]))));
+    main.appendChild(card);
+    if (dayHasJournal(iso)) {
+      main.appendChild(h('div', { class: 'card' },
+        h('h2', null, 'Dagens dagbog'),
+        h('pre', { class: 'jfull' }, compiledJournal(iso)),
+        h('div', { class: 'btnrow' },
+          h('button', { type: 'button', class: 'btn ghost', onclick: () => copyText(compiledJournal(iso)) }, 'Kopiér'),
+          h('button', { type: 'button', class: 'btn ghost', onclick: () => shareText(compiledJournal(iso)) }, 'Del'))));
+    }
+    main.appendChild(h('button', { type: 'button', class: 'btn', onclick: exitFlow }, 'Til forsiden'));
+    return;
+  }
+
+  const def = BLOCK_DEFS[f.block];
+
+  /* dagbogsblok: én prompt ad gangen */
+  if (def.journal) {
+    const p = JOURNAL_PROMPTS[f.jstep];
+    const j = journal[iso] || (journal[iso] = {});
+    const card = h('div', { class: 'card', style: 'padding:22px' });
+    card.appendChild(h('div', { class: 'jname' }, 'Regulér & Beløn · ' + (f.jstep + 1) + ' af 4'));
+    card.appendChild(h('div', { class: 'prompt-title' }, p.title));
+    card.appendChild(h('div', { class: 'prompt-hint' }, p.hint));
+    const ta = h('textarea', { class: 'jrnl', placeholder: 'Skriv her …' });
+    ta.value = j[p.key] || '';
+    const supportSlot = h('div');
+    ta.addEventListener('input', () => {
+      j[p.key] = ta.value;
+      clearTimeout(renderFlow._jt);
+      renderFlow._jt = setTimeout(() => {
+        saveJournal();
+        supportSlot.innerHTML = '';
+        if (crisisCheck(iso)) supportSlot.appendChild(supportCard());
+      }, 400);
+    });
+    card.appendChild(ta);
+    supportSlot.innerHTML = '';
+    if (crisisCheck(iso)) supportSlot.appendChild(supportCard());
+    card.appendChild(supportSlot);
+    main.appendChild(card);
+
+    function nextPrompt(skipped) {
+      saveJournal();
+      if (f.jstep < 3) { f.jstep += 1; render(); window.scrollTo(0, 0); }
+      else {
+        const any = dayHasJournal(iso);
+        advanceFlow(any);
+        if (!any && !f.journalOnly) toast('Helt okay 💚');
+      }
+    }
+    main.appendChild(h('div', { class: 'btnrow' },
+      h('button', { type: 'button', class: 'btn quiet', onclick: () => nextPrompt(true) }, p.optional ? 'Spring over — helt fint' : 'Spring over'),
+      h('button', { type: 'button', class: 'btn', onclick: () => nextPrompt(false) }, 'Videre')));
+    if (f.jstep > 0) main.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'margin-top:4px', onclick: () => { f.jstep -= 1; render(); } }, '‹ Tilbage'));
+    return;
+  }
+
+  /* almindelig blok */
+  const card = h('div', { class: 'card blockcard' });
+  card.appendChild(h('span', { class: 'emoji' }, def.emoji));
+  card.appendChild(h('h2', null, def.title));
+  if (def.lead) card.appendChild(h('p', { class: 'lead' }, def.lead));
+  const list = h('div', { class: 'list' });
+  for (const item of def.items()) {
+    const row = h('button', { type: 'button', class: 'chk', onclick: () => {
+      row.classList.toggle('on');
+    } },
+      h('span', { class: 'box' }, '✓'),
+      h('span', { class: 'txt' }, item));
+    list.appendChild(row);
+  }
+  card.appendChild(list);
+  if (def.breath) {
+    card.appendChild(h('button', { type: 'button', class: 'btn sandy', style: 'margin-bottom:4px', onclick: () => openPacer(5) },
+      'Start rolig vejrtrækning · 5 min'));
+  }
+  main.appendChild(card);
+  main.appendChild(h('div', { class: 'btnrow' },
+    h('button', { type: 'button', class: 'btn quiet', onclick: () => { advanceFlow(false); toast('Helt okay 💚'); } }, 'Spring over'),
+    h('button', { type: 'button', class: 'btn', onclick: () => advanceFlow(true) }, 'Færdig ✓')));
+  main.appendChild(h('p', { class: 'skipnote', style: 'text-align:center' }, 'Alt kan springes over — en delvis dag tæller også.'));
+}
+
+function supportCard() {
+  return h('div', { class: 'support' },
+    'Det lyder tungt lige nu. Du behøver ikke bære det alene: ',
+    h('b', null, 'Livslinien 70 201 201'), ' — eller ', h('b', null, '112'),
+    ', hvis det er akut. Din dagbog er stadig kun din. 💛');
+}
+
+/* ═══════════ Hjem ═══════════ */
+
+function greeting() {
+  const hr = new Date().getHours();
+  const name = settings.name ? ', ' + settings.name : '';
+  if (hr < 10) return 'Godmorgen' + name;
+  if (hr < 17) return 'Goddag' + name;
+  return 'Godaften' + name;
+}
+
+function renderHome() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const iso = todayISO();
+  const rec = days[iso];
+
+  /* morgenrutine-kort */
+  const mcard = h('div', { class: 'card' });
+  if (rec && rec.flowDone) {
+    mcard.appendChild(h('h2', null, 'Morgenrutinen er færdig 💚'));
+    mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:10px' }, 'Godt gået. Resten af dagen må gerne være blød.'));
+    mcard.appendChild(h('div', { class: 'chipwrap' },
+      BLOCK_DEFS.map(b => h('span', { class: 'chip' + ((rec.blocks || {})[b.key] ? '' : ' off') },
+        ((rec.blocks || {})[b.key] ? '✓ ' : '· ') + b.title.split(' — ')[0]))));
+  } else if (rec && (rec.progress || 0) > 0) {
+    mcard.appendChild(h('h2', null, 'Du er i gang 🌿'));
+    mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Fortsæt, når du er klar — der er ingen hast.'));
+    mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Fortsæt rutinen'));
+  } else {
+    mcard.appendChild(h('h2', null, 'Din morgenrutine er klar, når du er 🌿'));
+    mcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Du bestemmer, hvornår den begynder. Ét trin ad gangen, og alt kan springes over.'));
+    mcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(false) }, 'Godmorgen 🌿'));
+  }
+  main.appendChild(mcard);
+
+  /* ro-kort */
+  main.appendChild(h('div', { class: 'card' },
+    h('h2', null, 'Brug for et roligt øjeblik?'),
+    h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'To minutters blød vejrtrækning — ind 4, ud 6.'),
+    h('button', { type: 'button', class: 'btn ghost', onclick: () => openPacer(2) }, 'Start 2 min vejrtrækning')));
+
+  /* aften-kort */
+  const ecard = h('div', { class: 'card' });
+  ecard.appendChild(h('h2', null, 'I aften'));
+  ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'Blide holdepunkter — ikke pligter.'));
+  for (const it of EVENING_ITEMS) {
+    const on = !!(rec && rec.evening && rec.evening[it.key]);
+    const row = h('button', { type: 'button', class: 'chk' + (on ? ' on' : ''), onclick: () => {
+      const r = dayRec(iso);
+      r.evening[it.key] = !r.evening[it.key];
+      saveDays();
+      row.classList.toggle('on', r.evening[it.key]);
+      if (it.key === 'conrad' && r.evening[it.key]) {
+        toast('Godnat 💛 Du mødte op for dig selv i dag — det er nok.');
+      }
+    } },
+      h('span', { class: 'box' }, '✓'),
+      h('span', { class: 'txt' }, it.label),
+      it.breath ? h('span', { class: 'btn small sandy', style: 'margin-right:6px', onclick: (ev) => { ev.stopPropagation(); openPacer(5); } }, '5 min ro') : null,
+      h('span', { class: 'time' }, it.time));
+    ecard.appendChild(row);
+  }
+  main.appendChild(ecard);
+
+  /* dagbogsgenvej */
+  if (!dayHasJournal(iso) && !(rec && rec.flowDone)) {
+    main.appendChild(h('div', { class: 'card' },
+      h('h2', null, 'Kun dagbogen?'),
+      h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Du kan også bare skrive de fire linjer — det tæller.'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => startFlow(true) }, 'Skriv dagens dagbog')));
+  }
+}
+
+/* ═══════════ Dagbog (historik) ═══════════ */
+
+function renderJournalTab() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const iso = todayISO();
+
+  if (state.viewEntry) {
+    const d = state.viewEntry;
+    main.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'text-align:left;margin-bottom:6px', onclick: () => { state.viewEntry = null; render(); } }, '‹ Alle dagbogsposter'));
+    const card = h('div', { class: 'card' });
+    card.appendChild(h('h2', null, ucfirst(fmtDay.format(isoToDate(d)))));
+    card.appendChild(h('pre', { class: 'jfull', style: 'margin-top:10px' }, compiledJournal(d)));
+    card.appendChild(h('div', { class: 'btnrow' },
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => copyText(compiledJournal(d)) }, 'Kopiér'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => shareText(compiledJournal(d)) }, 'Del')));
+    if (d === iso) card.appendChild(h('button', { type: 'button', class: 'btn sandy', style: 'margin-top:8px', onclick: () => { state.viewEntry = null; startFlow(true); } }, 'Redigér dagens dagbog'));
+    main.appendChild(card);
+    return;
+  }
+
+  /* i dag */
+  const tcard = h('div', { class: 'card' });
+  tcard.appendChild(h('h2', null, 'I dag'));
+  if (dayHasJournal(iso)) {
+    const j = journal[iso];
+    tcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:10px' }, (j.q1 || j.q2 || j.q3 || '').slice(0, 90)));
+    tcard.appendChild(h('div', { class: 'btnrow' },
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => { state.viewEntry = iso; render(); } }, 'Læs'),
+      h('button', { type: 'button', class: 'btn sandy', onclick: () => startFlow(true) }, 'Redigér')));
+  } else {
+    tcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Ingen dagbog i dag endnu — og det er okay. Fire små linjer, når du er klar.'));
+    tcard.appendChild(h('button', { type: 'button', class: 'btn', onclick: () => startFlow(true) }, 'Skriv dagens dagbog'));
+  }
+  main.appendChild(tcard);
+
+  /* historik */
+  const dates = Object.keys(journal).filter(dayHasJournal).sort().reverse();
+  const hcard = h('div', { class: 'card' });
+  hcard.appendChild(h('div', { style: 'display:flex;align-items:center;justify-content:space-between;margin-bottom:4px' },
+    h('h2', null, 'Tidligere'),
+    dates.length ? h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
+      const all = dates.slice().reverse().map(compiledJournal).join('\n\n' + '─'.repeat(28) + '\n\n');
+      download('dagbog-' + todayISO() + '.txt', 'text/plain;charset=utf-8', all);
+    } }, 'Eksportér alle') : null));
+  if (!dates.length) {
+    hcard.appendChild(h('p', { class: 'center-muted' }, 'Dine dagbogsposter samler sig her — én dag ad gangen.'));
+  } else {
+    for (const d of dates.slice(0, 60)) {
+      const j = journal[d];
+      hcard.appendChild(h('button', { type: 'button', class: 'jitem', onclick: () => { state.viewEntry = d; render(); } },
+        h('span', { class: 'd' },
+          h('span', { class: 't' }, ucfirst(fmtDay.format(isoToDate(d)))),
+          h('span', { class: 's' }, (j.q1 || j.q2 || j.q3 || j.q4 || '').trim().slice(0, 70))),
+        h('span', { class: 'chev' }, '›')));
+    }
+  }
+  main.appendChild(hcard);
+  main.appendChild(h('p', { class: 'soft', style: 'text-align:center;padding:0 10px' },
+    'Tag den gerne med til din terapeut — det er dét, den er til.'));
+}
+
+/* ═══════════ Udvikling ═══════════ */
+
+function isoWeekLabel(offsetWeeks) {
+  const d = new Date();
+  d.setDate(d.getDate() - offsetWeeks * 7);
+  /* ISO-uge */
+  const t = new Date(d.getTime());
+  t.setHours(0, 0, 0, 0);
+  t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7));
+  const w1 = new Date(t.getFullYear(), 0, 4);
+  const wn = 1 + Math.round(((t - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+  return 'u' + wn;
+}
+function weekCounts(nWeeks) {
+  /* aktive dage pr. uge, ældste først; uge = man-søn der slutter i denne uge */
+  const out = [];
+  const today = todayISO();
+  const dowToday = (isoToDate(today).getDay() + 6) % 7;   /* 0 = mandag */
+  const thisMonday = addDays(today, -dowToday);
+  for (let w = nWeeks - 1; w >= 0; w--) {
+    const monday = addDays(thisMonday, -7 * w);
+    let c = 0, cj = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(monday, i);
+      if (d > today) break;
+      if (isDayActive(d)) c++;
+      if (dayHasJournal(d)) cj++;
+    }
+    out.push({ monday, count: c, journal: cj, label: isoWeekLabel(w) });
+  }
+  return out;
+}
+
+function renderProgress() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const total = totalActiveDays();
+
+  main.appendChild(h('div', { class: 'card', style: 'text-align:center' },
+    h('div', { class: 'bignum' }, String(total)),
+    h('div', { style: 'font-weight:700;margin-top:2px' }, total === 1 ? 'dag, hvor du mødte op for dig selv' : 'dage, hvor du mødte op for dig selv'),
+    h('p', { class: 'soft', style: 'margin-top:8px' }, 'Åbent og uden slutdato. Delvise dage tæller fuldt med — og huller er bare huller, ikke fiaskoer.')));
+
+  /* kalender */
+  if (!state.histMonth) state.histMonth = todayISO().slice(0, 7);
+  const [Y, M] = state.histMonth.split('-').map(Number);
+  const cal = h('div', { class: 'card' });
+  cal.appendChild(h('div', { class: 'cal-head' },
+    h('button', { type: 'button', 'aria-label': 'Forrige måned', onclick: () => {
+      const d = new Date(Y, M - 2, 1);
+      state.histMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      render();
+    } }, '‹'),
+    h('span', { class: 'm' }, ucfirst(fmtMonth.format(new Date(Y, M - 1, 1)))),
+    h('button', { type: 'button', 'aria-label': 'Næste måned', onclick: () => {
+      const d = new Date(Y, M, 1);
+      state.histMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      render();
+    } }, '›')));
+  const grid = h('div', { class: 'cal-grid' });
+  for (const dow of ['man', 'tir', 'ons', 'tor', 'fre', 'lør', 'søn']) grid.appendChild(h('div', { class: 'dow' }, dow));
+  const first = new Date(Y, M - 1, 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const dim = new Date(Y, M, 0).getDate();
+  const today = todayISO();
+  for (let i = 0; i < startOffset; i++) grid.appendChild(h('div', { class: 'cal-cell blank' }));
+  for (let d = 1; d <= dim; d++) {
+    const iso = Y + '-' + String(M).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    const cell = h('div', { class: 'cal-cell' + (iso === today ? ' today-c' : '') }, String(d));
+    const rec = days[iso];
+    if (rec && rec.flowDone) cell.classList.add('full');
+    else if (isDayActive(iso)) cell.classList.add('some');
+    grid.appendChild(cell);
+  }
+  cal.appendChild(grid);
+  cal.appendChild(h('div', { class: 'legend' },
+    h('span', null, h('i', { style: 'background:var(--teal)' }), 'hel morgenrutine'),
+    h('span', null, h('i', { style: 'background:var(--teal-soft);border:1px solid var(--teal)' }), 'noget den dag')));
+  main.appendChild(cal);
+
+  /* ugetendens */
+  const wk = weekCounts(8);
+  const wcard = h('div', { class: 'card' });
+  wcard.appendChild(h('h2', null, 'De sidste 8 uger'));
+  wcard.appendChild(h('p', { class: 'soft' }, 'Aktive dage pr. uge — tendensen betyder mere end den enkelte uge.'));
+  const bars = h('div', { class: 'wbar' });
+  for (const w of wk) {
+    bars.appendChild(h('div', { class: 'col' },
+      h('div', { class: 'bar', style: 'height:' + Math.max(3, w.count / 7 * 78) + 'px; opacity:' + (w.count ? 0.9 : 0.25) }),
+      h('span', { class: 'lbl' }, w.label)));
+  }
+  wcard.appendChild(bars);
+  main.appendChild(wcard);
+
+  /* dagbogs-konsistens */
+  let j30 = 0;
+  for (let i = 0; i < 30; i++) if (dayHasJournal(addDays(todayISO(), -i))) j30++;
+  const jcard = h('div', { class: 'card' });
+  jcard.appendChild(h('h2', null, 'Dagbogen'));
+  jcard.appendChild(h('div', { class: 'useline' },
+    h('span', { class: 'n' }, 'Skrevet de sidste 30 dage'),
+    h('div', { class: 'track' }, h('div', { class: 'fill', style: 'width:' + (j30 / 30 * 100) + '%' })),
+    h('span', { class: 'v' }, String(j30))));
+  main.appendChild(jcard);
+
+  /* blokke i alt */
+  const counts = {};
+  for (const b of BLOCK_DEFS) counts[b.key] = 0;
+  let breathTotal = 0;
+  for (const d of Object.keys(days)) {
+    for (const b of BLOCK_DEFS) if (days[d].blocks && days[d].blocks[b.key]) counts[b.key]++;
+    breathTotal += days[d].breathMin || 0;
+  }
+  const maxC = Math.max(1, ...Object.values(counts));
+  const bcard = h('div', { class: 'card' });
+  bcard.appendChild(h('h2', null, 'Hvad du har brugt mest'));
+  for (const b of BLOCK_DEFS) {
+    bcard.appendChild(h('div', { class: 'useline' },
+      h('span', { class: 'n' }, b.title.split(' — ')[0]),
+      h('div', { class: 'track' }, h('div', { class: 'fill', style: 'width:' + (counts[b.key] / maxC * 100) + '%' })),
+      h('span', { class: 'v' }, String(counts[b.key]))));
+  }
+  if (breathTotal > 0) bcard.appendChild(h('p', { class: 'soft', style: 'margin-top:8px' },
+    'Og ' + breathTotal + ' minutters rolig vejrtrækning i alt 🌬️'));
+  main.appendChild(bcard);
+
+  main.appendChild(h('p', { class: 'soft', style: 'text-align:center;padding:0 12px' },
+    'Udvikling bygger stille — dag for dag, uden deadline.'));
+}
+
+/* ═══════════ Påmindelser (.ics) ═══════════ */
+
+function buildICS() {
+  const active = settings.reminders.filter(r => r.enabled);
+  const today = todayISO().replace(/-/g, '');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Daily Calm//DA', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VTIMEZONE', 'TZID:Europe/Copenhagen',
+    'BEGIN:DAYLIGHT', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST',
+    'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'END:DAYLIGHT',
+    'BEGIN:STANDARD', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET',
+    'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'END:STANDARD',
+    'END:VTIMEZONE'];
+  for (const r of active) {
+    const hhmm = r.time.replace(':', '');
+    L.push('BEGIN:VEVENT',
+      'UID:dailycalm-' + r.id + '-' + hhmm + '@joachimsollested94.github.io',
+      'DTSTAMP:' + today + 'T000000Z',
+      'DTSTART;TZID=Europe/Copenhagen:' + today + 'T' + hhmm + '00',
+      'DURATION:PT15M', 'RRULE:FREQ=DAILY',
+      'SUMMARY:' + r.text,
+      'URL:' + APP_URL,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + r.text, 'TRIGGER:PT0S', 'END:VALARM',
+      'END:VEVENT');
+  }
+  L.push('END:VCALENDAR');
+  return L.join('\r\n') + '\r\n';
+}
+
+/* ═══════════ Indstillinger ═══════════ */
+
+function renderSettings() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+
+  /* navn + tema */
+  const pcard = h('div', { class: 'card' });
+  pcard.appendChild(h('h2', null, 'Dit rum'));
+  const nameIn = h('input', { class: 'tinput', type: 'text', value: settings.name || '', placeholder: 'Hvad skal vi kalde dig?' });
+  nameIn.addEventListener('change', () => { settings.name = nameIn.value.trim(); saveSettings(); renderTopbar(); });
+  pcard.appendChild(h('div', { class: 'set-row' }, h('div', { style: 'flex:1' }, h('div', { class: 'sl' }, 'Kaldenavn'), h('div', { class: 'sd' }, 'Bruges kun i hilsner her i appen.')), h('div', { style: 'width:150px' }, nameIn)));
+  const seg = h('div', { class: 'seg', style: 'margin-top:10px' });
+  for (const [v, lbl] of [['dark', 'Mørk'], ['light', 'Lys'], ['auto', 'Auto']]) {
+    seg.appendChild(h('button', { type: 'button', class: settings.theme === v ? 'sel' : '', onclick: () => {
+      settings.theme = v; saveSettings(); applyTheme(); render();
+    } }, lbl));
+  }
+  pcard.appendChild(h('div', { style: 'margin-top:6px' }, h('div', { class: 'sl', style: 'font-size:15px;font-weight:600;margin:6px 0 8px' }, 'Tema'), seg));
+  main.appendChild(pcard);
+
+  /* påmindelser */
+  const rcard = h('div', { class: 'card' });
+  rcard.appendChild(h('h2', null, 'Blide påmindelser'));
+  rcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'De minder — de kræver ikke.'));
+  for (const r of settings.reminders) {
+    const timeIn = h('input', { type: 'time', value: r.time });
+    timeIn.addEventListener('change', () => { if (timeIn.value) { r.time = timeIn.value; saveSettings(); } });
+    const tgl = h('button', { type: 'button', class: 'tgl' + (r.enabled ? ' on' : ''), 'aria-label': r.label, onclick: () => {
+      r.enabled = !r.enabled; saveSettings(); tgl.classList.toggle('on', r.enabled);
+    } });
+    rcard.appendChild(h('div', { class: 'set-row' },
+      h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'sl' }, r.label)),
+      timeIn, tgl));
+  }
+  rcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-top:12px', onclick: () => {
+    download('dailycalm-paamindelser.ics', 'text/calendar;charset=utf-8', buildICS());
+  } }, 'Føj påmindelser til kalenderen (.ics)'));
+  rcard.appendChild(h('p', { class: 'soft', style: 'margin-top:10px' },
+    'iPhone lader ikke en webapp sende planlagte notifikationer selv. Kalenderfilen giver dig i stedet pålidelige, stille påmindelser — åbn den hentede fil og tryk "Tilføj alle". Slår du noget til/fra her, så hent filen igen (og slet de gamle aftaler i kalenderen).'));
+  main.appendChild(rcard);
+
+  /* øvelser */
+  const ecard = h('div', { class: 'card' });
+  ecard.appendChild(h('h2', null, 'Øvelser'));
+  ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:10px' }, 'Én øvelse pr. linje — så kan listen vokse med dig, når fysioterapien ændrer sig.'));
+  const ta1 = h('textarea', { class: 'tinput', rows: '7' }); ta1.value = settings.exercises.baekken.join('\n');
+  const ta2 = h('textarea', { class: 'tinput', rows: '5' }); ta2.value = settings.exercises.skulder.join('\n');
+  function saveEx() {
+    settings.exercises.baekken = ta1.value.split('\n').map(s => s.trim()).filter(Boolean);
+    settings.exercises.skulder = ta2.value.split('\n').map(s => s.trim()).filter(Boolean);
+    saveSettings();
+  }
+  ta1.addEventListener('change', saveEx);
+  ta2.addEventListener('change', saveEx);
+  ecard.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin-bottom:6px' }, 'Bækkenøvelser'));
+  ecard.appendChild(ta1);
+  ecard.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin:12px 0 6px' }, 'Skulderøvelser'));
+  ecard.appendChild(ta2);
+  main.appendChild(ecard);
+
+  /* data */
+  const dcard = h('div', { class: 'card' });
+  dcard.appendChild(h('h2', null, 'Dine data'));
+  dcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Alt ligger kun på denne enhed. Eksport sker kun, når du selv beder om det.'));
+  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => {
+    const dates = Object.keys(journal).filter(dayHasJournal).sort();
+    if (!dates.length) { toast('Ingen dagbogsposter endnu'); return; }
+    download('dagbog-' + todayISO() + '.txt', 'text/plain;charset=utf-8', dates.map(compiledJournal).join('\n\n' + '─'.repeat(28) + '\n\n'));
+  } }, 'Eksportér dagbogen (.txt)'));
+  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => {
+    download('dailycalm-backup-' + todayISO() + '.json', 'application/json',
+      JSON.stringify({ app: 'dailycalm', version: 1, exported_at: new Date().toISOString(), settings, days, journal }, null, 2));
+  } }, 'Gem sikkerhedskopi (JSON)'));
+  const fileIn = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
+  fileIn.addEventListener('change', () => {
+    const f = fileIn.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const data = JSON.parse(rd.result);
+        if (!data || data.app !== 'dailycalm' || typeof data.journal !== 'object') { alert('Filen ligner ikke en sikkerhedskopi fra Daily Calm.'); return; }
+        if (!confirm('Gendan sikkerhedskopi? Dette erstatter alle nuværende data i appen.')) return;
+        days = data.days || {}; journal = data.journal || {};
+        if (data.settings) settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), data.settings, { introSeen: true });
+        saveDays(); saveJournal(); saveSettings(); applyTheme(); render();
+        toast('Gendannet ✓');
+      } catch (e) { alert('Kunne ikke læse filen: ' + e.message); }
+    };
+    rd.readAsText(f);
+    fileIn.value = '';
+  });
+  dcard.appendChild(fileIn);
+  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => fileIn.click() }, 'Gendan fra sikkerhedskopi'));
+  dcard.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'color:var(--danger)', onclick: () => {
+    if (!confirm('Slet ALLE data i Daily Calm?\n\nDette kan ikke fortrydes. Overvej først en sikkerhedskopi.')) return;
+    if (!confirm('Helt sikker? Dagbog, udvikling og indstillinger slettes permanent.')) return;
+    days = {}; journal = {};
+    settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); settings.introSeen = true;
+    saveDays(); saveJournal(); saveSettings(); applyTheme(); render();
+  } }, 'Slet alle data'));
+  main.appendChild(dcard);
+
+  /* om */
+  main.appendChild(h('div', { class: 'card' },
+    h('h2', null, 'Om Daily Calm'),
+    h('p', { class: 'soft' },
+      'Appen er en støtte i hverdagen — forudsigelig, blid og i dit tempo. Den er ikke behandling, og den erstatter ikke nogen: det dybe arbejde hører til hos din terapeut. ',
+      'Missede dage betyder ingenting om dig — rutinen venter bare roligt.'),
+    h('p', { class: 'soft', style: 'margin-top:10px' },
+      'Har du det svært? Ring ', h('b', { style: 'color:var(--sand)' }, '112'), ' ved akut fare, eller ',
+      h('b', { style: 'color:var(--sand)' }, 'Livslinien 70 201 201'), '.'),
+    h('p', { class: 'soft', style: 'margin-top:10px' }, 'Version ' + APP_VERSION + ' · Ingen konto, ingen sporing, alt bliver på enheden.')));
+}
+
+/* ═══════════ Topbar, faner & routing ═══════════ */
+
+const TABS = [
+  { id: 'home', label: 'I dag', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>' },
+  { id: 'journal', label: 'Dagbog', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3Z"/><path d="M4 17h16M8 8h8M8 12h5"/></svg>' },
+  { id: 'progress', label: 'Udvikling', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21c-5 -2.5 -7.5 -7 -7 -13 4 0.5 6 2 7 4 1 -2 3 -3.5 7 -4 0.5 6 -2 10.5 -7 13Z"/><path d="M12 21V12"/></svg>' },
+  { id: 'settings', label: 'Indstillinger', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z"/></svg>' }
+];
+
+function renderTopbar() {
+  const bar = document.getElementById('topbar');
+  if (state.flow) return; /* flow tegner sin egen top */
+  bar.innerHTML = '';
+  const titles = { home: greeting(), journal: 'Dagbog', progress: 'Din udvikling', settings: 'Indstillinger' };
+  bar.appendChild(h('div', null,
+    h('h1', null, titles[state.tab] || 'Daily Calm'),
+    state.tab === 'home' ? h('div', { class: 'sub' }, ucfirst(fmtDay.format(new Date()))) : null));
+}
+
+function renderTabbar() {
+  const nav = document.getElementById('tabbar');
+  nav.innerHTML = '';
+  for (const t of TABS) {
+    const btn = h('button', { type: 'button', class: state.tab === t.id ? 'sel' : '', 'aria-label': t.label, onclick: () => {
+      state.tab = t.id;
+      state.viewEntry = null;
+      if (t.id === 'progress') state.histMonth = null;
+      render();
+      window.scrollTo(0, 0);
+    } });
+    btn.innerHTML = t.icon;
+    btn.appendChild(h('span', null, t.label));
+    nav.appendChild(btn);
+  }
+}
+
+function render() {
+  document.body.classList.toggle('in-flow', !!state.flow);
+  if (state.flow) { renderFlow(); return; }
+  renderTopbar();
+  renderTabbar();
+  if (state.tab === 'home') renderHome();
+  else if (state.tab === 'journal') renderJournalTab();
+  else if (state.tab === 'progress') renderProgress();
+  else renderSettings();
+}
+
+/* ═══════════ Første start ═══════════ */
+
+function showIntro() {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = '';
+  root.appendChild(h('div', { class: 'modal-back' },
+    h('div', { class: 'modal' },
+      h('h2', null, 'Velkommen 🌿'),
+      h('p', null, 'Daily Calm er din rolige, faste rutine — samme trin, samme rækkefølge, hver dag. Du starter altid selv, og alt kan springes over. En delvis dag tæller fuldt med.'),
+      h('p', null, 'Dagbogen og alt andet gemmes kun på din egen enhed. Deling sker kun, når du selv trykker på del.'),
+      h('p', null, 'Appen er en støtte — ikke behandling. Det dybe arbejde hører til hos din terapeut.'),
+      h('p', { style: 'color:var(--muted);font-size:13.5px' }, 'Har du det svært? Ring 112 eller Livslinien 70 201 201.'),
+      h('button', { type: 'button', class: 'btn', onclick: () => {
+        settings.introSeen = true; saveSettings(); root.innerHTML = '';
+      } }, 'Godt at vide — videre'))));
+}
+
+loadAll();
+applyTheme();
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (settings.theme === 'auto') applyTheme(); });
+render();
+if (!settings.introSeen) showIntro();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* offline-cache er en bonus */ });
+  });
+}
+</script>
+</body>
+</html>
