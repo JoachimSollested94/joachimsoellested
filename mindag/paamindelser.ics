@@ -1,0 +1,107 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Min dag//DA
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VTIMEZONE
+TZID:Europe/Copenhagen
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+TZNAME:CEST
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+TZNAME:CET
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:mindag-morgen@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T080000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Din morgenrutine er klar, når du er 🌿
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Din morgenrutine er klar, når du er 🌿
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:mindag-mad@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T180000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Lave mad 🍲
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Lave mad 🍲
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:mindag-nurosym@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T190000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Nurosym + medicin
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Nurosym + medicin
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:mindag-fiskeolie@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T200000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Fiskeolie — og måske 5 min rolig vejrtrækning?
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Fiskeolie — og måske 5 min rolig vejrtrækning?
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:mindag-smertedagbog@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T200000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Udfyld smertedagbogen 💙
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Udfyld smertedagbogen 💙
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:mindag-conrad@joachimsollested94.github.io
+DTSTAMP:20260722T000000Z
+DTSTART;TZID=Europe/Copenhagen:20260722T213000
+DURATION:PT15M
+RRULE:FREQ=DAILY
+SUMMARY:Skifte Conrad — og så godnat 💛
+URL:https://joachimsollested94.github.io/joachimsoellested/mindag/
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Skifte Conrad — og så godnat 💛
+TRIGGER:PT0S
+END:VALARM
+END:VEVENT
+END:VCALENDAR
