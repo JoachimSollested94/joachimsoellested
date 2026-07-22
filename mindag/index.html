@@ -166,6 +166,7 @@ details.card > summary {
 details.card > summary:active { background: var(--teal-soft); }
 details.card > summary::-webkit-details-marker { display: none; }
 details.card > summary .chev { color: var(--muted); transition: transform 0.25s var(--ease-out); font-size: 12px; }
+.evsum { margin-left: auto; margin-right: 10px; font-size: 13px; font-weight: 750; color: var(--muted); font-variant-numeric: tabular-nums; }
 details.card[open] > summary .chev { transform: rotate(90deg); }
 details.card > .inner { padding: 2px 20px 20px; }
 
@@ -1177,7 +1178,7 @@ function nextStepInfo(rec, pe) {
     for (const it of EVENING_ITEMS) {
       if (!evDone(it.key)) return { text: 'Kl. ' + it.time + ' — ' + it.label, action: () => {
         const el = document.getElementById('evening-card');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       } };
     }
   }
@@ -1198,7 +1199,7 @@ function overviewCard(rec, pe) {
     seg('💙', 'Krop', hasPain ? '✓' : '·', hasPain, () => { state.painDate = iso; state.tab = 'track'; render(); window.scrollTo(0, 0); }),
     seg('🌙', 'Aften', evCount + '/' + EVENING_ITEMS.length, evCount === EVENING_ITEMS.length, () => {
       const el = document.getElementById('evening-card');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     })));
   const ns = nextStepInfo(rec, pe);
   const line = h('button', { type: 'button', class: 'nextline', onclick: () => { if (ns.action) ns.action(); } },
@@ -1247,10 +1248,16 @@ function renderHome() {
     if (new Date().getHours() >= 18) pcard.appendChild(h('p', { class: 'nudgeline' }, 'Måske nu? Det tager under et minut'));
   }
 
-  /* aften */
-  const ecard = h('div', { class: 'card', id: 'evening-card' });
-  ecard.appendChild(h('h2', null, 'I aften'));
-  ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'Blide holdepunkter — ikke pligter.'));
+  /* aften — sammenklappet, så listen ikke fylder på forsiden */
+  const ecard = h('details', { class: 'card', id: 'evening-card' });
+  const eCount = () => EVENING_ITEMS.filter(it => dcDays[iso] && dcDays[iso].evening && dcDays[iso].evening[it.key]).length;
+  const eStatus = h('span', { class: 'evsum' }, eCount() + ' af ' + EVENING_ITEMS.length);
+  ecard.appendChild(h('summary', null,
+    h('span', null, 'I aften'),
+    eStatus,
+    h('span', { class: 'chev' }, '▶')));
+  const eInner = h('div', { class: 'inner' });
+  eInner.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'Blide holdepunkter — ikke pligter.'));
   for (const it of EVENING_ITEMS) {
     const on = !!(rec && rec.evening && rec.evening[it.key]);
     const row = h('button', { type: 'button', class: 'chk' + (on ? ' on' : ''), onclick: () => {
@@ -1258,14 +1265,16 @@ function renderHome() {
       r.evening[it.key] = !r.evening[it.key];
       saveDcDays();
       row.classList.toggle('on', r.evening[it.key]);
+      eStatus.textContent = eCount() + ' af ' + EVENING_ITEMS.length;
       if (it.key === 'conrad' && r.evening[it.key]) toast('Godnat 💛 Du mødte op for dig selv i dag — det er nok.');
     } },
       h('span', { class: 'box' }, '✓'),
       h('span', { class: 'txt' }, it.label),
-      it.breath ? h('span', { class: 'btn small sandy', style: 'margin-right:6px', onclick: (ev) => { ev.stopPropagation(); openPacer(5); } }, '5 min ro') : null,
+      it.breath ? h('span', { class: 'btn small sandy', style: 'margin-right:6px', onclick: (ev) => { ev.preventDefault(); ev.stopPropagation(); openPacer(5); } }, '5 min ro') : null,
       h('span', { class: 'time' }, it.time));
-    ecard.appendChild(row);
+    eInner.appendChild(row);
   }
+  ecard.appendChild(eInner);
 
   /* dagbogsgenvej */
   let jcard = null;
