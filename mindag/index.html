@@ -5,62 +5,68 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Min dag</title>
 <meta name="description" content="Din samlede daglige app: rolig morgenrutine, dagbog, vejrtrækning og smertedagbog. Alle data gemmes kun på din egen enhed.">
-<meta name="theme-color" content="#0c1a1d">
+<meta name="theme-color" content="#fbf8f5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Min dag">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
 :root {
-  --bg: #0c1a1d;
-  --bg-wash-1: rgba(127, 209, 196, 0.08);
-  --bg-wash-2: rgba(231, 199, 154, 0.05);
-  --card: #142527;
-  --glass: rgba(18, 33, 35, 0.82);
-  --card-soft: #1b3134;
-  --text: #ecf3f1;
-  --muted: #8fa6a2;
-  --teal: #85d7c9;
-  --teal-strong: #5fc0af;
-  --teal-soft: rgba(133, 215, 201, 0.13);
-  --sand: #ecd0a4;
-  --sand-soft: rgba(236, 208, 164, 0.13);
-  --border: rgba(236, 243, 241, 0.08);
-  --border-strong: rgba(236, 243, 241, 0.14);
+  --bg: #171210;
+  --bg-wash-1: rgba(224, 144, 106, 0.08);
+  --bg-wash-2: rgba(146, 174, 199, 0.05);
+  --card: #201a15;
+  --glass: rgba(30, 24, 19, 0.84);
+  --card-soft: #2c231c;
+  --text: #f2ece6;
+  --muted: #a4948a;
+  --teal: #e0906a;
+  --teal-strong: #cd7a52;
+  --teal-soft: rgba(224, 144, 106, 0.13);
+  --sand: #92aec7;
+  --sand-soft: rgba(146, 174, 199, 0.13);
+  --border: rgba(242, 236, 230, 0.08);
+  --border-strong: rgba(242, 236, 230, 0.15);
   --good: #63b98d;
   --bad: #d98a80;
-  --btn-text: #0c1a1d;
+  --btn-text: #171210;
+  --glow-1: rgba(224, 144, 106, 0.5);
+  --glow-2: rgba(224, 144, 106, 0.14);
+  --glow-3: rgba(224, 144, 106, 0.2);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 30px rgba(0, 0, 0, 0.22);
-  --shadow-btn: 0 6px 18px rgba(95, 192, 175, 0.28);
+  --shadow-btn: 0 6px 18px rgba(205, 122, 82, 0.28);
   --radius: 20px;
   --radius-s: 13px;
   --ease-spring: cubic-bezier(0.34, 1.4, 0.44, 1);
   --ease-out: cubic-bezier(0.22, 0.8, 0.3, 1);
 }
 :root[data-theme="light"] {
-  --bg: #f4f3ee;
-  --bg-wash-1: rgba(46, 125, 112, 0.07);
-  --bg-wash-2: rgba(169, 126, 63, 0.05);
+  --bg: #fbf8f5;
+  --bg-wash-1: rgba(201, 123, 78, 0.07);
+  --bg-wash-2: rgba(122, 149, 173, 0.06);
   --card: #ffffff;
-  --glass: rgba(255, 255, 255, 0.86);
-  --card-soft: #ecefec;
-  --text: #22312e;
-  --muted: #63776f;
-  --teal: #2e7d70;
-  --teal-strong: #256b5f;
-  --teal-soft: rgba(46, 125, 112, 0.10);
-  --sand: #9d7333;
-  --sand-soft: rgba(169, 126, 63, 0.11);
-  --border: rgba(34, 49, 46, 0.08);
-  --border-strong: rgba(34, 49, 46, 0.15);
+  --glass: rgba(255, 255, 255, 0.88);
+  --card-soft: #f4ede7;
+  --text: #372e28;
+  --muted: #84766b;
+  --teal: #c07049;
+  --teal-strong: #ad603c;
+  --teal-soft: rgba(201, 123, 78, 0.11);
+  --sand: #5f7f9e;
+  --sand-soft: rgba(122, 149, 173, 0.13);
+  --border: rgba(55, 46, 40, 0.08);
+  --border-strong: rgba(55, 46, 40, 0.16);
   --good: #35845d;
   --bad: #b3564c;
   --btn-text: #ffffff;
-  --shadow-card: 0 1px 2px rgba(34, 49, 46, 0.05), 0 10px 28px rgba(34, 49, 46, 0.08);
-  --shadow-btn: 0 6px 18px rgba(46, 125, 112, 0.22);
+  --glow-1: rgba(192, 112, 73, 0.35);
+  --glow-2: rgba(192, 112, 73, 0.10);
+  --glow-3: rgba(192, 112, 73, 0.18);
+  --shadow-card: 0 1px 2px rgba(55, 46, 40, 0.05), 0 10px 28px rgba(55, 46, 40, 0.07);
+  --shadow-btn: 0 6px 18px rgba(192, 112, 73, 0.24);
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -268,7 +274,7 @@ textarea.tinput { resize: vertical; min-height: 60px; line-height: 1.55; }
 .flowhead { display: flex; align-items: center; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top)) 20px 0; }
 .flowhead .x { font-size: 15px; color: var(--muted); font-weight: 650; padding: 8px; }
 .blockcard { text-align: center; padding: 26px 20px 22px; }
-.blockcard .emoji { font-size: 46px; display: block; margin-bottom: 10px; filter: drop-shadow(0 4px 14px rgba(133, 215, 201, 0.25)); }
+.blockcard .emoji { font-size: 46px; display: block; margin-bottom: 10px; filter: drop-shadow(0 4px 14px var(--glow-3)); }
 .blockcard h2 { font-size: 21px; letter-spacing: -0.3px; margin-bottom: 5px; }
 .blockcard .lead { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.55; }
 .blockcard .list { text-align: left; margin-bottom: 14px; }
@@ -308,11 +314,11 @@ pre.jfull { white-space: pre-wrap; font-family: inherit; font-size: 14.5px; line
 .pacer-circle-wrap { width: 250px; height: 250px; display: flex; align-items: center; justify-content: center; margin: 28px 0; }
 .pacer-circle {
   width: 224px; height: 224px; border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, rgba(133, 215, 201, 0.55), rgba(133, 215, 201, 0.14) 70%);
+  background: radial-gradient(circle at 50% 40%, var(--glow-1), var(--glow-2) 70%);
   border: 1.5px solid var(--teal);
   display: flex; align-items: center; justify-content: center;
   transform: scale(0.6);
-  box-shadow: 0 0 70px rgba(133, 215, 201, 0.22), inset 0 0 40px rgba(133, 215, 201, 0.10);
+  box-shadow: 0 0 70px var(--glow-3), inset 0 0 40px var(--glow-2);
 }
 @keyframes ambient { 0%, 100% { transform: scale(0.6); } 50% { transform: scale(0.66); } }
 .pacer-circle.idle { animation: ambient 7s ease-in-out infinite; }
@@ -596,7 +602,7 @@ const DEFAULT_REMINDERS = [
 
 const DC_DEFAULT_SETTINGS = {
   name: 'Champion',
-  theme: 'dark',
+  theme: 'light',
   reminders: JSON.parse(JSON.stringify(DEFAULT_REMINDERS)),
   exercises: JSON.parse(JSON.stringify(DEFAULT_EXERCISES)),
   introSeen: false
@@ -728,6 +734,8 @@ function loadAll() {
   try { ds = JSON.parse(localStorage.getItem(DC_SETTINGS_KEY)) || {}; } catch (e) { ds = {}; }
   dcSettings = Object.assign({}, JSON.parse(JSON.stringify(DC_DEFAULT_SETTINGS)), ds);
   if (!dcSettings.exercises || !Array.isArray(dcSettings.exercises.baekken)) dcSettings.exercises = JSON.parse(JSON.stringify(DEFAULT_EXERCISES));
+  /* Fersken-paletten er lys som standard — engangsskift, man kan stadig vælge mørk. */
+  if (!dcSettings.themeV3) { dcSettings.theme = 'light'; dcSettings.themeV3 = true; saveDcSettings(); }
 
   /* Påmindelser: flet gemte tider/til-fra ind i standardlisten pr. id, så nye
      påmindelser (fx smertedagbogen) også dukker op for eksisterende brugere. */
@@ -849,7 +857,7 @@ function applyTheme() {
   if (t === 'auto') t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', t);
   const mc = document.querySelector('meta[name="theme-color"]');
-  if (mc) mc.setAttribute('content', t === 'light' ? '#f4f3ee' : '#0c1a1d');
+  if (mc) mc.setAttribute('content', t === 'light' ? '#fbf8f5' : '#171210');
 }
 
 /* ════════════════════════ App-tilstand ════════════════════════ */
