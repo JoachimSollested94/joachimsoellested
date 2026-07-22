@@ -171,7 +171,7 @@ textarea.tinput { resize: vertical; min-height: 60px; }
   font-size: 15px; color: transparent; background: var(--card-soft);
 }
 .actrow.done .tick { background: var(--good); border-color: var(--good); color: #fff; }
-.actrow .aname { flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px 0; }
+.actrow .aname { flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px 0; text-align: left; }
 .actrow .mins { display: none; align-items: center; gap: 5px; }
 .actrow.done .mins { display: flex; }
 .actrow .mins input {
@@ -230,8 +230,8 @@ textarea.tinput { resize: vertical; min-height: 60px; }
 .hist-item:last-child { border-bottom: none; }
 .hist-item .dot { width: 12px; height: 12px; border-radius: 6px; flex: none; background: var(--card-soft); }
 .hist-item .d { flex: 1; min-width: 0; }
-.hist-item .d .t { font-size: 14.5px; font-weight: 600; text-transform: capitalize; }
-.hist-item .d .s { font-size: 12.5px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-item .d .t { display: block; font-size: 14.5px; font-weight: 600; }
+.hist-item .d .s { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hist-item .chev { color: var(--muted); font-size: 14px; }
 
 /* insights */
@@ -326,7 +326,7 @@ const APP_URL = 'https://joachimsollested94.github.io/joachimsoellested/dagbog/'
 
 const HINT_NEG = '0 = ingen · 10 = mest intens';
 const HINT_NEG_PAIN = '0 = ingen · 10 = værst tænkelig';
-const HINT_POS = '0 = meget lav · 10 = rigtig god';
+const HINT_POS = '0 = i bund · 10 = i top';
 
 const WOT_OPTIONS = [
   { value: 'in_window', label: 'I vinduet', desc: 'Rolig og i stand til at klare det — følelserne føles håndterbare.' },
@@ -411,6 +411,7 @@ function isoToDate(iso) { const [y, m, d] = iso.split('-').map(Number); return n
 const fmtLong = new Intl.DateTimeFormat('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
 const fmtShort = new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'short' });
 const fmtMonth = new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' });
+function ucfirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function fmtNum(x, digits) {
   if (digits === undefined) digits = 1;
   return Number(x).toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: digits });
@@ -938,7 +939,7 @@ function renderHistory() {
       } },
         h('span', { class: 'dot', style: isNum(e.pain_level) ? 'background:' + painColor(e.pain_level) : '' }),
         h('span', { class: 'd' },
-          h('span', { class: 't' }, fmtLong.format(isoToDate(iso))),
+          h('span', { class: 't' }, ucfirst(fmtLong.format(isoToDate(iso)))),
           h('span', { class: 's' }, bits.length ? bits.join(' · ') : 'Udfyldt uden scorer')),
         h('span', { class: 'chev' }, '›'));
       list.appendChild(item);
@@ -1034,7 +1035,7 @@ function computeInsights() {
 
 function trendChart(trend) {
   if (trend.length < 2) return null;
-  const W = 320, H = 150, L = 24, R = 6, T = 8, B = 22;
+  const W = 320, H = 150, L = 24, R = 16, T = 8, B = 22;
   const t0 = isoToDate(trend[0].date).getTime();
   const t1 = isoToDate(trend[trend.length - 1].date).getTime();
   const span = Math.max(t1 - t0, 1);
@@ -1440,9 +1441,9 @@ function renderTopbar() {
   if (state.tab === 'today') {
     const isToday = state.date === todayISO();
     const left = h('div', null,
-      h('h1', null, isToday ? 'I dag' : fmtLong.format(isoToDate(state.date))),
+      h('h1', null, isToday ? 'I dag' : ucfirst(fmtLong.format(isoToDate(state.date)))),
       h('div', { class: 'sub' }, isToday
-        ? fmtLong.format(isoToDate(state.date)).replace(/^./, c => c.toUpperCase())
+        ? ucfirst(fmtLong.format(isoToDate(state.date)))
         : 'Du redigerer en tidligere dag'));
     const nav = h('div', { class: 'datenav' },
       h('span', { class: 'saved-badge' }, 'Gemt ✓'),
