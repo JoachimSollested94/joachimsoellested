@@ -485,6 +485,32 @@ body.in-flow #app { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 .chip.off { background: var(--card-soft); color: var(--muted); }
 .chip.sand { background: var(--sand-soft); color: var(--sand); }
 .nudgeline { font-size: 13px; color: var(--teal); font-weight: 650; margin-top: 10px; }
+
+/* ── dagens overblik ── */
+.ovrow { display: flex; gap: 8px; }
+.ovseg { flex: 1; background: var(--card-soft); border-radius: 14px; padding: 11px 6px; text-align: center; border: 1px solid transparent; transition: all 0.18s; }
+.ovseg:active { transform: scale(0.96); }
+.ovseg .ic { font-size: 17px; display: block; margin-bottom: 3px; }
+.ovseg .t { font-size: 11px; font-weight: 750; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: 0.05em; }
+.ovseg .st { font-size: 12.5px; font-weight: 800; display: block; margin-top: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ovseg.done { background: var(--teal-soft); border-color: var(--teal); }
+.ovseg.done .st, .ovseg.done .t { color: var(--teal); }
+.nextline {
+  margin-top: 12px; width: 100%; text-align: left; font-size: 14px; font-weight: 650; color: var(--text);
+  background: var(--teal-soft); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px;
+  display: flex; gap: 10px; align-items: center; line-height: 1.4;
+}
+.nextline .nk { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); flex: none; }
+.nextline .chev { margin-left: auto; color: var(--muted); flex: none; }
+/* ── kom godt i gang ── */
+.step { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.step:last-of-type { border-bottom: none; }
+.step .num { width: 27px; height: 27px; border-radius: 14px; background: var(--card-soft); color: var(--muted); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
+.step.done .num { background: var(--good); color: #fff; }
+.step .tx { flex: 1; font-size: 14px; font-weight: 620; line-height: 1.35; }
+.step .tx small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; margin-top: 2px; }
+.stale-note { background: var(--sand-soft); border: 1px solid var(--sand); border-radius: 12px; padding: 11px 13px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
+
 </style>
 </head>
 <body>
@@ -1146,6 +1172,90 @@ function greeting() {
   return 'Godaften' + name;
 }
 
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
+}
+
+function nextStepInfo(rec, pe) {
+  const hr = new Date().getHours();
+  const flowDone = !!(rec && rec.flowDone);
+  const hasPain = !!(pe && Object.keys(pe).length);
+  const evDone = (k) => !!(rec && rec.evening && rec.evening[k]);
+  if (!flowDone && hr < 17) {
+    return { text: (rec && rec.progress > 0) ? 'Fortsæt morgenrutinen, når du er klar' : 'Start morgenrutinen, når du er klar', action: () => startFlow(false) };
+  }
+  if (!hasPain) {
+    return { text: 'Udfyld dagens registrering — det tager under et minut', action: () => { state.painDate = todayISO(); state.tab = 'track'; render(); window.scrollTo(0, 0); } };
+  }
+  if (hr >= 17) {
+    for (const it of EVENING_ITEMS) {
+      if (!evDone(it.key)) return { text: 'Kl. ' + it.time + ' — ' + it.label, action: () => {
+        const el = document.getElementById('evening-card');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } };
+    }
+  }
+  if (!flowDone) return { text: 'Rutinen venter roligt, hvis du vil — ellers er dagen din 💛', action: () => startFlow(false) };
+  return { text: 'Alt for i dag er på plads 💛', action: null };
+}
+
+function overviewCard(rec, pe) {
+  const iso = todayISO();
+  const flowDone = !!(rec && rec.flowDone);
+  const hasPain = !!(pe && Object.keys(pe).length);
+  const evCount = EVENING_ITEMS.filter(it => rec && rec.evening && rec.evening[it.key]).length;
+  const card = h('div', { class: 'card' });
+  card.appendChild(h('span', { class: 'kicker' }, 'Dagens overblik'));
+  const seg = (ic, t, st, done, onclick) => h('button', { type: 'button', class: 'ovseg' + (done ? ' done' : ''), onclick },
+    h('span', { class: 'ic' }, ic), h('span', { class: 't' }, t), h('span', { class: 'st' }, st));
+  card.appendChild(h('div', { class: 'ovrow' },
+    seg('🌿', 'Morgen', flowDone ? '✓' : '·', flowDone, () => { if (!flowDone) startFlow(false); }),
+    seg('💙', 'Krop', hasPain ? '✓' : '·', hasPain, () => { state.painDate = iso; state.tab = 'track'; render(); window.scrollTo(0, 0); }),
+    seg('🌙', 'Aften', evCount + '/' + EVENING_ITEMS.length, evCount === EVENING_ITEMS.length, () => {
+      const el = document.getElementById('evening-card');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })));
+  const ns = nextStepInfo(rec, pe);
+  const line = h('button', { type: 'button', class: 'nextline', onclick: () => { if (ns.action) ns.action(); } },
+    h('span', { class: 'nk' }, 'Næste'), h('span', null, ns.text), ns.action ? h('span', { class: 'chev' }, '›') : null);
+  card.appendChild(line);
+  return card;
+}
+
+function setupCard() {
+  if (dcSettings.setupHidden) return null;
+  const home = isStandalone();
+  const ics = !!dcSettings.icsFetched;
+  if (home && ics) return null;   /* alt vigtigt er på plads — guiden forsvinder selv */
+  const card = h('div', { class: 'card' });
+  card.appendChild(h('span', { class: 'kicker' }, 'Opsætning'));
+  card.appendChild(h('h2', null, 'Kom godt i gang'));
+  card.appendChild(h('p', { class: 'soft', style: 'margin-bottom:6px' }, 'To små ting — så passer appen sig selv.'));
+
+  const s1 = h('div', { class: 'step' + (home ? ' done' : '') },
+    h('span', { class: 'num' }, home ? '✓' : '1'),
+    h('span', { class: 'tx' }, 'Føj appen til hjemmeskærmen',
+      h('small', null, home ? 'Gjort — du er her fra hjemmeskærmen' : 'I Safari: tryk Del-knappen → "Føj til hjemmeskærm"')));
+  card.appendChild(s1);
+
+  const s2 = h('div', { class: 'step' + (ics ? ' done' : '') },
+    h('span', { class: 'num' }, ics ? '✓' : '2'),
+    h('span', { class: 'tx' }, 'Læg påmindelserne i kalenderen',
+      h('small', null, ics ? 'Gjort — kalenderen minder dig blidt om dagen' : 'Én fil med alle seks daglige påmindelser')),
+    ics ? null : h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
+      download('mindag-paamindelser.ics', 'text/calendar;charset=utf-8', buildICS());
+      dcSettings.icsFetched = true; dcSettings.icsStale = false; saveDcSettings();
+      toast('Åbn filen og tryk "Tilføj alle" ✓');
+      renderMain();
+    } }, 'Hent fil'));
+  card.appendChild(s2);
+
+  card.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'margin-top:6px', onclick: () => {
+    dcSettings.setupHidden = true; saveDcSettings(); renderMain();
+  } }, 'Skjul guiden'));
+  return card;
+}
+
 function renderHome() {
   const main = document.getElementById('main');
   main.innerHTML = '';
@@ -1198,7 +1308,7 @@ function renderHome() {
     h('button', { type: 'button', class: 'btn ghost', onclick: () => openPacer(2) }, 'Start 2 min vejrtrækning'));
 
   /* aften */
-  const ecard = h('div', { class: 'card' });
+  const ecard = h('div', { class: 'card', id: 'evening-card' });
   ecard.appendChild(h('span', { class: 'kicker' }, 'Aften'));
   ecard.appendChild(h('h2', null, 'I aften'));
   ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'Blide holdepunkter — ikke pligter.'));
@@ -1232,6 +1342,9 @@ function renderHome() {
   const evening = new Date().getHours() >= 17;
   const order = evening ? [pcard, ecard, ccard, mcard, jcard] : [mcard, pcard, ccard, ecard, jcard];
   order[0].classList.add('hero');
+  main.appendChild(overviewCard(rec, pe));
+  const setup = setupCard();
+  if (setup) main.appendChild(setup);
   for (const c of order) if (c) main.appendChild(c);
 }
 
@@ -2234,149 +2347,177 @@ function renderSettings() {
   const main = document.getElementById('main');
   main.innerHTML = '';
 
-  /* navn + tema */
-  const pcard = h('div', { class: 'card' });
-  pcard.appendChild(h('span', { class: 'kicker' }, 'Profil'));
-  pcard.appendChild(h('h2', null, 'Dit rum'));
-  const nameIn = h('input', { class: 'tinput', type: 'text', value: dcSettings.name || '', placeholder: 'Hvad skal vi kalde dig?' });
-  nameIn.addEventListener('change', () => { dcSettings.name = nameIn.value.trim(); saveDcSettings(); renderTopbar(); });
-  pcard.appendChild(h('div', { class: 'set-row' },
-    h('div', { style: 'flex:1' }, h('div', { class: 'sl' }, 'Kaldenavn'), h('div', { class: 'sd' }, 'Bruges kun i hilsner her i appen.')),
-    h('div', { style: 'width:150px' }, nameIn)));
-  const seg = h('div', { class: 'seg', style: 'margin-top:10px' });
-  for (const [v, lbl] of [['dark', 'Mørk'], ['light', 'Lys'], ['auto', 'Auto']]) {
-    seg.appendChild(h('button', { type: 'button', class: dcSettings.theme === v ? 'sel' : '', onclick: () => {
-      dcSettings.theme = v; saveDcSettings(); applyTheme(); render();
-    } }, lbl));
+  function group(title, sub, build, open) {
+    const det = h('details', { class: 'card' });
+    if (open) det.setAttribute('open', '');
+    det.appendChild(h('summary', null,
+      h('span', null, title, sub ? h('span', { style: 'display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:2px' }, sub) : null),
+      h('span', { class: 'chev' }, '▶')));
+    const inner = h('div', { class: 'inner' });
+    build(inner);
+    det.appendChild(inner);
+    main.appendChild(det);
+    return det;
   }
-  pcard.appendChild(h('div', { style: 'margin-top:6px' }, h('div', { class: 'sl', style: 'font-size:15px;font-weight:600;margin:6px 0 8px' }, 'Tema'), seg));
-  main.appendChild(pcard);
 
-  /* påmindelser */
-  const rcard = h('div', { class: 'card' });
-  rcard.appendChild(h('span', { class: 'kicker' }, 'Påmindelser'));
-  rcard.appendChild(h('h2', null, 'Blide påmindelser'));
-  rcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:4px' }, 'De minder — de kræver ikke. Alle seks samlet i én kalenderfil.'));
-  for (const r of dcSettings.reminders) {
-    const timeIn = h('input', { type: 'time', value: r.time });
-    timeIn.addEventListener('change', () => {
-      if (timeIn.value) {
-        r.time = timeIn.value; saveDcSettings();
-        if (r.id === 'smertedagbog') { painSettings.reminderTime = timeIn.value; savePainSettings(); }
-      }
-    });
-    const tgl = h('button', { type: 'button', class: 'tgl' + (r.enabled ? ' on' : ''), 'aria-label': r.label, onclick: () => {
-      r.enabled = !r.enabled; saveDcSettings(); tgl.classList.toggle('on', r.enabled);
-    } });
-    rcard.appendChild(h('div', { class: 'set-row' },
-      h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'sl' }, r.label)),
-      timeIn, tgl));
-  }
-  rcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-top:12px', onclick: () => {
-    download('mindag-paamindelser.ics', 'text/calendar;charset=utf-8', buildICS());
-  } }, 'Føj påmindelser til kalenderen (.ics)'));
-  rcard.appendChild(h('p', { class: 'soft', style: 'margin-top:10px' },
-    'iPhone lader ikke en webapp sende planlagte notifikationer selv. Kalenderfilen giver dig i stedet pålidelige, stille påmindelser — åbn den hentede fil og tryk "Tilføj alle". Ændrer du noget her, så hent filen igen (og slet de gamle aftaler i kalenderen).'));
-  main.appendChild(rcard);
+  /* ── Profil & tema ── */
+  group('Profil & tema', 'Kaldenavn og lyst/mørkt udseende', (el) => {
+    const nameIn = h('input', { class: 'tinput', type: 'text', value: dcSettings.name || '', placeholder: 'Hvad skal vi kalde dig?' });
+    nameIn.addEventListener('change', () => { dcSettings.name = nameIn.value.trim(); saveDcSettings(); renderTopbar(); });
+    el.appendChild(h('div', { class: 'set-row' },
+      h('div', { style: 'flex:1' }, h('div', { class: 'sl' }, 'Kaldenavn'), h('div', { class: 'sd' }, 'Bruges kun i hilsner her i appen.')),
+      h('div', { style: 'width:150px' }, nameIn)));
+    const seg = h('div', { class: 'seg', style: 'margin-top:10px' });
+    for (const [v, lbl] of [['light', 'Lys'], ['dark', 'Mørk'], ['auto', 'Auto']]) {
+      seg.appendChild(h('button', { type: 'button', class: dcSettings.theme === v ? 'sel' : '', onclick: () => {
+        dcSettings.theme = v; saveDcSettings(); applyTheme(); render();
+      } }, lbl));
+    }
+    el.appendChild(h('div', { style: 'margin-top:6px' }, h('div', { class: 'sl', style: 'font-weight:600;margin:6px 0 8px' }, 'Tema'), seg));
+  });
 
-  /* aktiviteter (registrering) */
-  const acard = h('div', { class: 'card' });
-  acard.appendChild(h('span', { class: 'kicker' }, 'Registrering'));
-  acard.appendChild(h('h2', null, 'Aktiviteter i registreringen'));
-  acard.appendChild(h('div', { class: 'hintline' },
-    'Vises som tjekliste i smertedagbogen. Træning, somatisk arbejde og hypnose er faste og kan ikke slettes.'));
-  for (const a of painSettings.activities) {
-    const nameInput = h('input', { class: 'tinput', type: 'text', value: a.label });
-    nameInput.addEventListener('change', () => {
-      const v = nameInput.value.trim();
-      if (v) { a.label = v; savePainSettings(); } else nameInput.value = a.label;
-    });
-    acard.appendChild(h('div', { class: 'act-edit' },
-      nameInput,
-      h('button', { type: 'button', class: 'del', 'aria-label': 'Slet ' + a.label, onclick: () => {
-        if (!confirm('Fjern "' + a.label + '" fra tjeklisten?\n\nAllerede registrerede dage beholder deres data, men aktiviteten vises ikke længere i formularen eller i indsigterne.')) return;
-        painSettings.activities = painSettings.activities.filter(x => x.id !== a.id);
+  /* ── Påmindelser ── */
+  group('Blide påmindelser', 'Seks daglige tidspunkter — samlet i én kalenderfil', (el) => {
+    const staleSlot = h('div');
+    function refreshStale() {
+      staleSlot.innerHTML = '';
+      if (dcSettings.icsStale) staleSlot.appendChild(h('div', { class: 'stale-note' },
+        'Din kalender har stadig de gamle tider. Hent filen igen herunder — og slet de gamle aftaler i Kalender.'));
+    }
+    for (const r of dcSettings.reminders) {
+      const timeIn = h('input', { type: 'time', value: r.time });
+      timeIn.addEventListener('change', () => {
+        if (timeIn.value) {
+          r.time = timeIn.value;
+          dcSettings.icsStale = true;
+          saveDcSettings();
+          if (r.id === 'smertedagbog') { painSettings.reminderTime = timeIn.value; savePainSettings(); }
+          refreshStale();
+        }
+      });
+      const tgl = h('button', { type: 'button', class: 'tgl' + (r.enabled ? ' on' : ''), 'aria-label': r.label, onclick: () => {
+        r.enabled = !r.enabled;
+        dcSettings.icsStale = true;
+        saveDcSettings();
+        tgl.classList.toggle('on', r.enabled);
+        refreshStale();
+      } });
+      el.appendChild(h('div', { class: 'set-row' },
+        h('div', { style: 'flex:1;min-width:0' }, h('div', { class: 'sl' }, r.label)),
+        timeIn, tgl));
+    }
+    refreshStale();
+    el.appendChild(staleSlot);
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-top:12px', onclick: () => {
+      download('mindag-paamindelser.ics', 'text/calendar;charset=utf-8', buildICS());
+      dcSettings.icsFetched = true; dcSettings.icsStale = false; saveDcSettings();
+      refreshStale();
+      toast('Åbn filen og tryk "Tilføj alle" ✓');
+    } }, 'Føj påmindelser til kalenderen (.ics)'));
+    const how = h('details', { style: 'margin-top:12px' });
+    how.appendChild(h('summary', { style: 'font-size:13.5px;font-weight:650;color:var(--teal);cursor:pointer;list-style:none' }, 'Sådan gør du — 3 trin'));
+    how.appendChild(h('div', { class: 'soft', style: 'margin-top:8px', html:
+      '1. Tryk på knappen ovenfor, åbn den hentede fil, og tryk <b>"Tilføj alle"</b>.<br>' +
+      '2. Har du gamle Min dag-aftaler i kalenderen, så slet dem.<br>' +
+      '3. Færdig — kalenderen minder dig blidt om dagen. Ændrer du tider her, gentager du bare trin 1–2.' }));
+    el.appendChild(how);
+    el.appendChild(h('p', { class: 'soft', style: 'margin-top:10px' },
+      'iPhone lader ikke webapps sende notifikationer selv — kalenderen klarer det pålideligt i stedet.'));
+  });
+
+  /* ── Tilpas indhold ── */
+  group('Tilpas indhold', 'Aktiviteter i registreringen og øvelser i rutinen', (el) => {
+    el.appendChild(h('div', { class: 'sl', style: 'font-weight:700;margin-bottom:4px' }, 'Aktiviteter i registreringen'));
+    el.appendChild(h('div', { class: 'hintline' }, 'Træning, somatisk arbejde og hypnose er faste — resten bestemmer du.'));
+    for (const a of painSettings.activities) {
+      const nameInput = h('input', { class: 'tinput', type: 'text', value: a.label });
+      nameInput.addEventListener('change', () => {
+        const v = nameInput.value.trim();
+        if (v) { a.label = v; savePainSettings(); } else nameInput.value = a.label;
+      });
+      el.appendChild(h('div', { class: 'act-edit' },
+        nameInput,
+        h('button', { type: 'button', class: 'del', 'aria-label': 'Slet ' + a.label, onclick: () => {
+          if (!confirm('Fjern "' + a.label + '" fra tjeklisten?\n\nAllerede registrerede dage beholder deres data.')) return;
+          painSettings.activities = painSettings.activities.filter(x => x.id !== a.id);
+          savePainSettings(); renderMain();
+        } }, '✕')));
+    }
+    const addInput = h('input', { class: 'tinput', type: 'text', placeholder: 'Ny aktivitet, fx "Fysioterapi-øvelser"' });
+    el.appendChild(h('div', { class: 'act-edit' },
+      addInput,
+      h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
+        const v = addInput.value.trim();
+        if (!v) return;
+        painSettings.activities.push({ id: 'a' + Date.now().toString(36), label: v });
         savePainSettings(); renderMain();
-      } }, '✕')));
-  }
-  const addInput = h('input', { class: 'tinput', type: 'text', placeholder: 'Ny aktivitet, fx "Fysioterapi-øvelser"' });
-  acard.appendChild(h('div', { class: 'act-edit' },
-    addInput,
-    h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
-      const v = addInput.value.trim();
-      if (!v) return;
-      painSettings.activities.push({ id: 'a' + Date.now().toString(36), label: v });
-      savePainSettings(); renderMain();
-    } }, 'Tilføj')));
-  main.appendChild(acard);
+      } }, 'Tilføj')));
 
-  /* øvelser (rutine) */
-  const ecard = h('div', { class: 'card' });
-  ecard.appendChild(h('span', { class: 'kicker' }, 'Morgenrutine'));
-  ecard.appendChild(h('h2', null, 'Øvelser i morgenrutinen'));
-  ecard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:10px' }, 'Én øvelse pr. linje — så kan listen vokse med dig, når fysioterapien ændrer sig.'));
-  const ta1 = h('textarea', { class: 'tinput', rows: '7' }); ta1.value = dcSettings.exercises.baekken.join('\n');
-  const ta2 = h('textarea', { class: 'tinput', rows: '5' }); ta2.value = dcSettings.exercises.skulder.join('\n');
-  function saveEx() {
-    dcSettings.exercises.baekken = ta1.value.split('\n').map(s => s.trim()).filter(Boolean);
-    dcSettings.exercises.skulder = ta2.value.split('\n').map(s => s.trim()).filter(Boolean);
-    saveDcSettings();
-  }
-  ta1.addEventListener('change', saveEx);
-  ta2.addEventListener('change', saveEx);
-  ecard.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin-bottom:6px' }, 'Bækkenøvelser'));
-  ecard.appendChild(ta1);
-  ecard.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin:12px 0 6px' }, 'Skulderøvelser'));
-  ecard.appendChild(ta2);
-  main.appendChild(ecard);
+    el.appendChild(h('div', { class: 'sl', style: 'font-weight:700;margin:16px 0 4px' }, 'Øvelser i morgenrutinen'));
+    el.appendChild(h('div', { class: 'hintline' }, 'Én øvelse pr. linje — listen kan vokse med dig.'));
+    const ta1 = h('textarea', { class: 'tinput', rows: '7' }); ta1.value = dcSettings.exercises.baekken.join('\n');
+    const ta2 = h('textarea', { class: 'tinput', rows: '5' }); ta2.value = dcSettings.exercises.skulder.join('\n');
+    function saveEx() {
+      dcSettings.exercises.baekken = ta1.value.split('\n').map(x => x.trim()).filter(Boolean);
+      dcSettings.exercises.skulder = ta2.value.split('\n').map(x => x.trim()).filter(Boolean);
+      saveDcSettings();
+    }
+    ta1.addEventListener('change', saveEx);
+    ta2.addEventListener('change', saveEx);
+    el.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin-bottom:6px' }, 'Bækkenøvelser'));
+    el.appendChild(ta1);
+    el.appendChild(h('div', { class: 'sl', style: 'font-weight:600;margin:12px 0 6px' }, 'Skulderøvelser'));
+    el.appendChild(ta2);
+  });
 
-  /* eksport & data */
-  const dcard = h('div', { class: 'card' });
-  dcard.appendChild(h('span', { class: 'kicker' }, 'Dine data'));
-  dcard.appendChild(h('h2', null, 'Eksport & dine data'));
-  dcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Alt ligger kun på denne enhed. Eksport sker kun, når du selv beder om det.'));
-  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: exportExcelCSV },
-    'Smertedagbog til Excel (CSV) — til din læge'));
-  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: exportRawCSV },
-    'Smertedagbog som rå CSV'));
-  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => {
-    const dates = Object.keys(dcJournal).filter(dayHasJournal).sort();
-    if (!dates.length) { toast('Ingen dagbogsposter endnu'); return; }
-    download('dagbog-' + todayISO() + '.txt', 'text/plain;charset=utf-8', dates.map(compiledJournal).join('\n\n' + '─'.repeat(28) + '\n\n'));
-  } }, 'Dagbogen som tekst (.txt) — til din terapeut'));
-  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: exportBackup },
-    'Gem samlet sikkerhedskopi (JSON)'));
-  const fileIn = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
-  fileIn.addEventListener('change', () => { if (fileIn.files[0]) importBackup(fileIn.files[0]); fileIn.value = ''; });
-  dcard.appendChild(fileIn);
-  dcard.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => fileIn.click() },
-    'Gendan fra sikkerhedskopi'));
-  dcard.appendChild(h('p', { class: 'soft', style: 'margin-bottom:8px' },
-    'Gendannelse accepterer også gamle sikkerhedskopier fra Smertedagbog og Daily Calm.'));
-  dcard.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'color:var(--bad)', onclick: () => {
-    if (!confirm('Slet ALLE data i Min dag?\n\nDette kan ikke fortrydes. Overvej først en samlet sikkerhedskopi.')) return;
-    if (!confirm('Helt sikker? Registreringer, dagbog, udvikling og indstillinger slettes permanent.')) return;
-    painEntries = {}; dcDays = {}; dcJournal = {};
-    localStorage.removeItem(PAIN_SETTINGS_KEY);
-    localStorage.removeItem(DC_SETTINGS_KEY);
-    savePainEntries(); saveDcDays(); saveDcJournal();
-    loadAll();
-    dcSettings.introSeen = true; painSettings.safetySeen = true;
-    saveDcSettings(); savePainSettings();
-    applyTheme(); render();
-  } }, 'Slet alle data'));
-  main.appendChild(dcard);
+  /* ── Dine data ── */
+  group('Dine data & eksport', 'Excel til lægen, dagbog til terapeuten, sikkerhedskopi', (el) => {
+    el.appendChild(h('p', { class: 'soft', style: 'margin-bottom:12px' }, 'Alt ligger kun på denne enhed. Eksport sker kun, når du selv beder om det.'));
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: exportExcelCSV },
+      'Smertedagbog til Excel (CSV) — til din læge'));
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: exportRawCSV },
+      'Smertedagbog som rå CSV'));
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => {
+      const dates = Object.keys(dcJournal).filter(dayHasJournal).sort();
+      if (!dates.length) { toast('Ingen dagbogsposter endnu'); return; }
+      download('dagbog-' + todayISO() + '.txt', 'text/plain;charset=utf-8', dates.map(compiledJournal).join('\n\n' + '─'.repeat(28) + '\n\n'));
+    } }, 'Dagbogen som tekst (.txt) — til din terapeut'));
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => {
+      exportBackup();
+      dcSettings.backupMade = true; saveDcSettings();
+    } }, 'Gem samlet sikkerhedskopi (JSON)'));
+    const fileIn = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none' });
+    fileIn.addEventListener('change', () => { if (fileIn.files[0]) importBackup(fileIn.files[0]); fileIn.value = ''; });
+    el.appendChild(fileIn);
+    el.appendChild(h('button', { type: 'button', class: 'btn ghost', style: 'margin-bottom:8px', onclick: () => fileIn.click() },
+      'Gendan fra sikkerhedskopi'));
+    el.appendChild(h('p', { class: 'soft', style: 'margin-bottom:8px' },
+      'Gendannelse accepterer også gamle sikkerhedskopier fra Smertedagbog og Daily Calm.'));
+    el.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'color:var(--bad)', onclick: () => {
+      if (!confirm('Slet ALLE data i Min dag?\n\nDette kan ikke fortrydes. Overvej først en samlet sikkerhedskopi.')) return;
+      if (!confirm('Helt sikker? Registreringer, dagbog, udvikling og indstillinger slettes permanent.')) return;
+      painEntries = {}; dcDays = {}; dcJournal = {};
+      localStorage.removeItem(PAIN_SETTINGS_KEY);
+      localStorage.removeItem(DC_SETTINGS_KEY);
+      savePainEntries(); saveDcDays(); saveDcJournal();
+      loadAll();
+      dcSettings.introSeen = true; painSettings.safetySeen = true;
+      saveDcSettings(); savePainSettings();
+      applyTheme(); render();
+    } }, 'Slet alle data'));
+  });
 
-  /* hjemmeskærm-tip */
-  if (!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone) {
-    main.appendChild(h('div', { class: 'card' },
-      h('h2', null, 'Føj til hjemmeskærmen'),
-      h('p', { class: 'soft' },
-        'Åbn appen i Safari, tryk på Del-knappen (firkanten med pil op) og vælg "Føj til hjemmeskærm". Så virker Min dag som en rigtig app — også uden internet.')));
+  /* ── Vis guiden igen ── */
+  if (dcSettings.setupHidden) {
+    main.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'margin-bottom:12px', onclick: () => {
+      dcSettings.setupHidden = false; saveDcSettings();
+      state.tab = 'home'; render(); window.scrollTo(0, 0);
+    } }, 'Vis "Kom godt i gang"-guiden igen'));
   }
 
-  /* om & sikkerhed */
+  /* ── Om & sikkerhed (altid synlig) ── */
   main.appendChild(h('div', { class: 'card' },
+    h('span', { class: 'kicker' }, 'Om'),
     h('h2', null, 'Om Min dag & sikkerhed'),
     h('div', { class: 'safety' }, SAFETY_TEXT),
     h('p', { class: 'soft', style: 'margin-top:10px' },
@@ -2464,8 +2605,8 @@ function showIntro() {
   root.appendChild(h('div', { class: 'modal-back' },
     h('div', { class: 'modal' },
       h('h2', null, 'Velkommen til Min dag 🌿'),
-      h('p', null, 'Alt samlet ét sted: din rolige morgenrutine, dagbogen, vejrtrækningen — og smertedagbogen, så du og din læge kan se mønstre over tid.'),
-      h('p', null, 'Du starter altid selv, alt kan springes over, og en delvis dag tæller fuldt med. Alle data gemmes kun på din egen enhed — deling sker kun, når du selv trykker på del.'),
+      h('p', null, 'Én rolig app til din dag: morgenrutine, dagbog, vejrtrækning og smertedagbog.'),
+      h('p', null, 'Du starter altid selv, alt kan springes over, og en delvis dag tæller. Alle data bliver på din egen enhed.'),
       h('div', { class: 'safety' }, SAFETY_TEXT),
       h('button', { type: 'button', class: 'btn', style: 'margin-top:12px', onclick: () => {
         dcSettings.introSeen = true; painSettings.safetySeen = true;
