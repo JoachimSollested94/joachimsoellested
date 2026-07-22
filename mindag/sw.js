@@ -1,5 +1,5 @@
 /* Min dag service worker — cache-first app shell with background refresh. */
-const CACHE = 'mindag-v4';
+const CACHE = 'mindag-v5';
 const ASSETS = [
   './',
   './index.html',

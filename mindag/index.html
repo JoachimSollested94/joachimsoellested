@@ -502,13 +502,6 @@ body.in-flow #app { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 }
 .nextline .nk { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); flex: none; }
 .nextline .chev { margin-left: auto; color: var(--muted); flex: none; }
-/* ── kom godt i gang ── */
-.step { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.step:last-of-type { border-bottom: none; }
-.step .num { width: 27px; height: 27px; border-radius: 14px; background: var(--card-soft); color: var(--muted); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }
-.step.done .num { background: var(--good); color: #fff; }
-.step .tx { flex: 1; font-size: 14px; font-weight: 620; line-height: 1.35; }
-.step .tx small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; margin-top: 2px; }
 .stale-note { background: var(--sand-soft); border: 1px solid var(--sand); border-radius: 12px; padding: 11px 13px; font-size: 13px; line-height: 1.5; margin-top: 10px; }
 
 </style>
@@ -1172,10 +1165,6 @@ function greeting() {
   return 'Godaften' + name;
 }
 
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
-}
-
 function nextStepInfo(rec, pe) {
   const hr = new Date().getHours();
   const flowDone = !!(rec && rec.flowDone);
@@ -1219,40 +1208,6 @@ function overviewCard(rec, pe) {
   const line = h('button', { type: 'button', class: 'nextline', onclick: () => { if (ns.action) ns.action(); } },
     h('span', { class: 'nk' }, 'Næste'), h('span', null, ns.text), ns.action ? h('span', { class: 'chev' }, '›') : null);
   card.appendChild(line);
-  return card;
-}
-
-function setupCard() {
-  if (dcSettings.setupHidden) return null;
-  const home = isStandalone();
-  const ics = !!dcSettings.icsFetched;
-  if (home && ics) return null;   /* alt vigtigt er på plads — guiden forsvinder selv */
-  const card = h('div', { class: 'card' });
-  card.appendChild(h('span', { class: 'kicker' }, 'Opsætning'));
-  card.appendChild(h('h2', null, 'Kom godt i gang'));
-  card.appendChild(h('p', { class: 'soft', style: 'margin-bottom:6px' }, 'To små ting — så passer appen sig selv.'));
-
-  const s1 = h('div', { class: 'step' + (home ? ' done' : '') },
-    h('span', { class: 'num' }, home ? '✓' : '1'),
-    h('span', { class: 'tx' }, 'Føj appen til hjemmeskærmen',
-      h('small', null, home ? 'Gjort — du er her fra hjemmeskærmen' : 'I Safari: tryk Del-knappen → "Føj til hjemmeskærm"')));
-  card.appendChild(s1);
-
-  const s2 = h('div', { class: 'step' + (ics ? ' done' : '') },
-    h('span', { class: 'num' }, ics ? '✓' : '2'),
-    h('span', { class: 'tx' }, 'Læg påmindelserne i kalenderen',
-      h('small', null, ics ? 'Gjort — kalenderen minder dig blidt om dagen' : 'Én fil med alle seks daglige påmindelser')),
-    ics ? null : h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
-      download('mindag-paamindelser.ics', 'text/calendar;charset=utf-8', buildICS());
-      dcSettings.icsFetched = true; dcSettings.icsStale = false; saveDcSettings();
-      toast('Åbn filen og tryk "Tilføj alle" ✓');
-      renderMain();
-    } }, 'Hent fil'));
-  card.appendChild(s2);
-
-  card.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'margin-top:6px', onclick: () => {
-    dcSettings.setupHidden = true; saveDcSettings(); renderMain();
-  } }, 'Skjul guiden'));
   return card;
 }
 
@@ -1343,8 +1298,6 @@ function renderHome() {
   const order = evening ? [pcard, ecard, ccard, mcard, jcard] : [mcard, pcard, ccard, ecard, jcard];
   order[0].classList.add('hero');
   main.appendChild(overviewCard(rec, pe));
-  const setup = setupCard();
-  if (setup) main.appendChild(setup);
   for (const c of order) if (c) main.appendChild(c);
 }
 
@@ -2506,14 +2459,6 @@ function renderSettings() {
       applyTheme(); render();
     } }, 'Slet alle data'));
   });
-
-  /* ── Vis guiden igen ── */
-  if (dcSettings.setupHidden) {
-    main.appendChild(h('button', { type: 'button', class: 'btn quiet', style: 'margin-bottom:12px', onclick: () => {
-      dcSettings.setupHidden = false; saveDcSettings();
-      state.tab = 'home'; render(); window.scrollTo(0, 0);
-    } }, 'Vis "Kom godt i gang"-guiden igen'));
-  }
 
   /* ── Om & sikkerhed (altid synlig) ── */
   main.appendChild(h('div', { class: 'card' },
